@@ -1,0 +1,13 @@
+{{ template "header" }}
+
+<h1>Settings</h1>
+
+<table><thead>
+    <tr><th>Setting</th><th>Value</th></tr>
+</thead><tbody>
+    <tr><td>Last Harvest</td><td>{{ ConfigValue "last-harvest" }}</td></tr>
+    <tr><td>Harvest Interval</td><td></td></tr>
+</tbody>
+</table>
+
+{{ template "footer" }}

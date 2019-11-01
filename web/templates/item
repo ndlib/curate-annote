@@ -1,0 +1,57 @@
+{{ template "header" }}
+
+<h1>Item {{ .PID }}</h1>
+
+<table><thead><tr>
+    <th>Property</th>
+    <th>Value</th>
+</tr></thead><tbody>
+{{ range .Properties }}
+    <tr>
+        <td>{{ .Predicate }}</td>
+        <td>{{ if isCompound .Object }}
+            {{ range $k, $v := splitCompound .Object }}
+                <b>{{ $k }}</b> {{ $v }}<br/>
+            {{ end }}
+        {{ else if isPID .Object }}
+            <a href="/obj/{{ .Object }}">{{ .Object }}</a>
+        {{ else if isURL .Object }}
+            <a href="{{ .Object }}">{{ .Object }}</a>
+        {{ else }}
+            {{ decodeUnicode .Object }}
+        {{ end }}</td>
+    </tr>
+{{ end }}
+</tbody></table>
+
+{{ with AttachedFiles .PID }}
+<h2>Attached Files ({{ len . }} Files)</h2>
+<table><thead>
+    <tr><th>PID</th><th>Mime-Type</th><th>Filename</th></tr>
+<tbody>
+    {{ range . }}
+    <tr>
+        <td><a href="/obj/{{ .PID }}">{{ .PID }}</a></td>
+        <td>{{ FirstField "mime-type" . }}</td>
+        <td><a href="{{ FirstField "file-location" . }}">{{ FirstField "filename" . }}</a></td>
+    </tr>
+    {{ end }}
+</tbody></table>
+{{ end }}
+
+{{ with CollectionMembers .PID }}
+<h2>Collection Members ({{ len . }} Items)</h2>
+<table><thead>
+    <tr><th>PID</th><th>af-model</th><th>Title</th></tr>
+<tbody>
+    {{ range . }}
+    <tr>
+        <td><a href="/obj/{{ .PID }}">{{ .PID }}</a></td>
+        <td>{{ FirstField "af-model" . }}</td>
+        <td>{{ FirstField "dc:title" . | decodeUnicode }}</td>
+    </tr>
+    {{ end }}
+</tbody></table>
+{{ end }}
+
+{{ template "footer" }}

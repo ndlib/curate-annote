@@ -5,26 +5,7 @@
   {{ $title := FirstField . "dc:title" "filename" }}
   <title>{{ $title }} // CurateND</title>
 
-  <!--
-    <!-- metadata tags for Google Scholar -->
-    <meta name="DC.title" content="The Rise and Fall of Favor-Based Digitization: Workflows Taste Better on a Cake">
-    <meta name="DC.creator" content="Mikala Narlock">
-    <meta name="DC.creator" content="Pat Lawton">
-    <meta name="DC.creator" content="Patrick Rader">
-    <meta name="prism.publicationDate" content="2019-10">
-    <meta name="citation_journal_title" content="Midwest Archives Conference Newsletter">
-    <meta name="citation_volume" content="47">
-    <meta name="citation_issue" content="2">
-    <meta name="prism.startingPage" content="20">
-    <meta name="prism.endingPage" content="22">
-    <meta name="citation_pdf_url" content="https://curate.nd.edu/downloads/z316pz5417c">
-    -->
-
     <meta name="viewport" content="width=device-width">
-    <!--
-      <meta content="authenticity_token" name="csrf-param" />
-      <meta content="OBt2FjHJg/92nv+BbSuZBufGi5VRNcu132NTrLNKZbI0NCIy5vs9Rbn9/mHJD4ihfPDPEXurzMUlU9zSxE0C8g==" name="csrf-token" />
-    -->
 
     <link href="/static/application.css" media="screen, print" rel="stylesheet" />
 

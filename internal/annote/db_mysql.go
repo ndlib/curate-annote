@@ -15,6 +15,7 @@ type MysqlDB struct {
 
 var migrations = []migration.Migrator{
 	migration1,
+	migration2,
 }
 
 func migration1(tx migration.LimitedTx) error {
@@ -29,6 +30,36 @@ func migration1(tx migration.LimitedTx) error {
 		`CREATE TABLE IF NOT EXISTS config (
 		c_key varchar(255) PRIMARY KEY,
 		c_value text)`,
+	}
+	return execlist(tx, s)
+}
+
+func migration2(tx migration.LimitedTx) error {
+	var s = []string{
+		`CREATE TABLE IF NOT EXISTS users (
+		id int PRIMARY KEY AUTO_INCREMENT,
+		username varchar(255),
+		hashedpassword varchar(255),
+		created datetime,
+		orcid varchar(255),
+		INDEX i_username (username),
+		INDEX i_orcid (orcid))`,
+	}
+	return execlist(tx, s)
+}
+
+func migration3(tx migration.LimitedTx) error {
+	var s = []string{
+		`CREATE TABLE IF NOT EXISTS tll_tokens (
+		id int PRIMARY KEY AUTO_INCREMENT,
+		token varchar(255),
+		creator varchar(255),
+		created datetime,
+		expire  datetime,
+		used    bool,
+		item    varchar(255)
+		INDEX i_token (token),
+		INDEX i_item (item))`,
 	}
 	return execlist(tx, s)
 }
@@ -274,4 +305,53 @@ func (sq *MysqlDB) FindAllRange(offset, count int) ([]CurateItem, error) {
 	}
 	defer rows.Close()
 	return readCurateItems(rows)
+}
+
+func (sq *MysqlDB) FindUser(username string) (*User, error) {
+	var u User
+	row := sq.db.QueryRow(`SELECT id, username, hashedpassword, created, orcid FROM users WHERE username = ? LIMIT 1`, username)
+	err := row.Scan(&u.ID, &u.Username, &u.HashedPassword, &u.Created, &u.ORCID)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (sq *MysqlDB) FindUserByToken(token string) (*User, error) {
+	var u User
+	row := sq.db.QueryRow(`SELECT id, username, hashedpassword, created, orcid FROM users WHERE hashedpassword = ? LIMIT 1`, token)
+	err := row.Scan(&u.ID, &u.Username, &u.HashedPassword, &u.Created, &u.ORCID)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (sq *MysqlDB) SaveUser(user *User) error {
+	_, err := sq.db.Exec(`INSERT INTO users (username, hashedpassword, created, orcid) VALUES (?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE username = ?, hashedpassword = ?, created = ?, orcid = ?`,
+		user.Username,
+		user.HashedPassword,
+		user.Created,
+		user.ORCID,
+		user.Username,
+		user.HashedPassword,
+		user.Created,
+		user.ORCID,
+	)
+	return err
+}
+
+func (sq *MysqlDB) FindTLLByToken(token string) {
+}
+
+func (sq *MysqlDB) SaveTLLToken(token LimitedToken) error {
+	_, err := sq.db.Exec(`INSERT INTO tll_tokens (token, creator, created, expire, used, item) VALUES (?,?,?,?,?,?)`,
+		token.Token,
+		token.Creator,
+		token.Created,
+		token.Expire,
+		token.Used,
+		token.Item)
+	return err
 }

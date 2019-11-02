@@ -17,6 +17,7 @@ type Config struct {
 	TemplatePath   string
 	Port           string
 	CurateURL      string
+	AllPassword    string
 }
 
 var (
@@ -58,6 +59,7 @@ func main() {
 		annote.Datasource = db
 	}
 	annote.CurateURL = config.CurateURL
+	annote.AllPassword = config.AllPassword
 
 	if config.TemplatePath != "" {
 		err := annote.LoadTemplates(config.TemplatePath)

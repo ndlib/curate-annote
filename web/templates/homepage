@@ -1,0 +1,5 @@
+{{ template "header" }}
+
+<h1>CurateND Annotation Test Server</h1>
+
+{{ template "footer" }}

@@ -1,0 +1,5 @@
+download_cache/*
+.DS_Store
+.*.sw?
+/annote-server
+/cmd/annote-server/annote-server

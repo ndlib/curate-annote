@@ -1,33 +1,44 @@
 package annote
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 )
 
+var (
+	AllPassword string
+)
+
 func AddRoutes() http.Handler {
 	var routes = []struct {
-		method  string
-		route   string
-		handler httprouter.Handle
+		method      string
+		route       string
+		handler     httprouter.Handle
+		defaultAuth bool
 	}{
-		{"GET", "/", IndexHandler},
-		{"GET", "/obj/:id", GetObject},
-		{"GET", "/obj", NotImplemented},
-		{"GET", "/show/:id", ObjectShow},
-		{"GET", "/downloads/:id", ObjectDownload},
-		{"GET", "/downloads/:id/thumbnail", ObjectDownloadThumbnail},
-		{"GET", "/config", ConfigPage},
-		{"POST", "/config", UpdateConfig},
+		{"GET", "/", IndexHandler, false},
+		{"GET", "/obj/:id", GetObject, false},
+		{"GET", "/obj", NotImplemented, false},
+		{"GET", "/show/:id", ObjectShow, true},
+		{"GET", "/downloads/:id", ObjectDownload, false},
+		{"GET", "/downloads/:id/thumbnail", ObjectDownloadThumbnail, true},
+		{"GET", "/profile", ProfileShow, false},
+		{"GET", "/config", ConfigPage, true},
+		{"POST", "/config", UpdateConfig, true},
 	}
 
 	r := httprouter.New()
 	for _, route := range routes {
+		h := route.handler
+		if route.defaultAuth {
+			h = authWrapper(h)
+		}
 		r.Handle(route.method,
 			route.route,
-			route.handler)
+			h)
 	}
 	if StaticFilePath != "" {
 		r.ServeFiles("/static/*filepath", http.Dir(StaticFilePath))
@@ -42,4 +53,34 @@ func logWrapper(handler http.Handler) http.Handler {
 		log.Println(r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
+}
+
+func ShowForbidden(w http.ResponseWriter) {
+	// tell web browsers to display password box
+	w.Header().Set("WWW-Authenticate", "Basic")
+	w.WriteHeader(401)
+	fmt.Fprintln(w, "Forbidden")
+}
+
+// VerifyAuth looks at the basic auth username and password. If it is not
+// valid, it returns a response asking for better ones and returns false. If it
+// is valid, it returns true.
+func VerifyAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) bool {
+	_, pass, ok := r.BasicAuth()
+	if !ok || pass != AllPassword {
+		ShowForbidden(w)
+		return false
+	}
+
+	return true
+}
+
+func authWrapper(h httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		if !VerifyAuth(w, r, ps) {
+			return
+		}
+
+		h(w, r, ps)
+	}
 }

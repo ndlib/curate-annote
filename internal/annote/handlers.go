@@ -3,6 +3,7 @@ package annote
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -125,36 +126,31 @@ func LoadTemplates(path string) error {
 	return err
 }
 
-func notFound(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-	err := Templates.ExecuteTemplate(w, "404", nil)
+func DoTemplate(w io.Writer, name string, data interface{}) {
+	err := Templates.ExecuteTemplate(w, name, data)
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+func notFound(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNotFound)
+	DoTemplate(w, "404", nil)
 }
 
 func serverError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusInternalServerError)
-	err := Templates.ExecuteTemplate(w, "500", nil)
-	if err != nil {
-		log.Println(err)
-	}
+	DoTemplate(w, "500", nil)
 }
 
 func NotImplemented(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.WriteHeader(http.StatusNotImplemented)
-	err := Templates.ExecuteTemplate(w, "500", nil)
-	if err != nil {
-		log.Println(err)
-	}
+	DoTemplate(w, "500", nil)
 }
 
 // IndexHandler responds to the root route.
 func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	err := Templates.ExecuteTemplate(w, "homepage", nil)
-	if err != nil {
-		log.Println(err)
-	}
+	DoTemplate(w, "homepage", nil)
 }
 
 func GetObject(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -165,17 +161,11 @@ func GetObject(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fmt.Fprintln(w, err)
 		return
 	}
-	err = Templates.ExecuteTemplate(w, "item", item)
-	if err != nil {
-		log.Println(err)
-	}
+	DoTemplate(w, "item", item)
 }
 
 func ConfigPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	err := Templates.ExecuteTemplate(w, "config", nil)
-	if err != nil {
-		log.Println(err)
-	}
+	DoTemplate(w, "config", nil)
 }
 
 func UpdateConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -197,15 +187,16 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fmt.Fprintln(w, err)
 		return
 	}
-	err = Templates.ExecuteTemplate(w, "show", item)
-	if err != nil {
-		log.Println(err)
-	}
+	DoTemplate(w, "show", item)
 }
 
 func ObjectDownload(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	pid := ps.ByName("id")
 	pid = strings.TrimPrefix(pid, "und:")
+
+	// don't need to do any auth here since we get files
+	// from curate's public interface. So we ultimately
+	// only have access to the public things.
 
 	// is file cached?
 	path := FindFileInCache(pid)
@@ -240,18 +231,164 @@ func ObjectDownloadThumbnail(w http.ResponseWriter, r *http.Request, ps httprout
 	http.ServeFile(w, r, path)
 }
 
-func ProfileShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+type resetparams struct {
+	ResetToken string
+	User       *User
+	Message    string
+}
+
+func ResetShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// are there valid reset tokens?
+	var user *User
 	reset := r.FormValue("r")
 	if reset != "" {
-		user := FindUserByToken(reset)
-		if user == nil {
-			ShowForbidden(w)
-			return
-		}
+		user = FindUserByToken(reset)
+	}
 
-		// show reset page
+	v := resetparams{
+		ResetToken: reset,
+		User:       user,
+	}
+
+	DoTemplate(w, "reset", v)
+}
+
+func ResetUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var user *User
+	reset := r.FormValue("r")
+	if reset != "" {
+		user = FindUserByToken(reset)
+	}
+	v := resetparams{
+		ResetToken: reset,
+		User:       user,
+	}
+	if user == nil {
+		v.Message = "The password was not updated."
+		DoTemplate(w, "reset", v)
+		return
+	}
+	pw1 := r.FormValue("pwd")
+	pw2 := r.FormValue("pwd2")
+	if pw1 != pw2 {
+		v.Message = "The password was not entered the same both times."
+		DoTemplate(w, "reset", v)
 		return
 	}
 
-	//ok = VerifyAuth(w, r, ps)
+	err := ResetPassword(user.Username, pw1)
+	if err != nil {
+		v.Message = err.Error()
+		DoTemplate(w, "reset", v)
+		return
+	}
+
+	http.Redirect(w, r, "/", 302)
+}
+
+type userparams struct {
+	User    *User
+	Message string
+	NewUser *User
+}
+
+func ProfileShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
+	DoTemplate(w, "profile", userparams{User: user})
+}
+
+func ProfileUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
+	v := userparams{User: user}
+
+	// figure out what is desired...
+	cp := r.FormValue("changepass")
+	if cp != "" {
+		t, err := CreateResetToken(username)
+		if err != nil {
+			v.Message = err.Error()
+			DoTemplate(w, "profile", v)
+			return
+		}
+		http.Redirect(w, r, "/reset?r="+t, 302)
+		return
+	}
+
+	nu := r.FormValue("newuser")
+	if nu != "" {
+		newuser, err := CreateNewUser()
+		if err != nil {
+			v.Message = err.Error()
+		} else {
+			v.NewUser = newuser
+		}
+		DoTemplate(w, "profile", v)
+		return
+	}
+
+	// no idea. display page again
+	DoTemplate(w, "profile", v)
+}
+
+func ProfileEditShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
+	DoTemplate(w, "profile_edit", userparams{User: user})
+}
+
+var (
+	orcidRE = regexp.MustCompile(`\d{4}-\d{4}-\d{4}-\d{3}[0-9X]`)
+)
+
+func ProfileEditUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var err error
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+	v := userparams{User: user}
+	var messages []string
+
+	newusername := r.FormValue("username")
+	if newusername != username {
+		otheruser := FindUser(newusername)
+		if otheruser != nil {
+			messages = append(messages, "Username already exists")
+			goto do_orcid
+		}
+		user.Username = newusername
+	}
+
+do_orcid:
+	orcid := r.FormValue("orcid")
+	if orcid != "" {
+		neworcid := orcidRE.FindString(orcid)
+		if neworcid == "" {
+			messages = append(messages, "no orcid in "+orcid)
+			goto out
+		}
+		user.ORCID = neworcid
+	} else {
+		user.ORCID = ""
+	}
+
+	err = SaveUser(user)
+	if err != nil {
+		messages = append(messages, err.Error())
+		log.Println(err)
+	}
+	if newusername != username {
+		ClearUserFromCache(username)
+	}
+
+out:
+	if len(messages) > 0 {
+		v.Message = strings.Join(messages, " // ")
+		DoTemplate(w, "profile_edit", v)
+		return
+	}
+	http.Redirect(w, r, "/profile", 302)
 }

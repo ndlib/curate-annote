@@ -1,5 +1,5 @@
 <html><head><style>
 tbody tr:nth-child(even) { background-color: #eeeeee; }
 </style></head><body>
-<a href="/">Home</a> • <a href="/config">Settings</a><br/>
+<a href="/">Home</a> • <a href="/config">Settings</a> • <a href="/profile">Profile</a><br/>
 

@@ -20,12 +20,17 @@ func AddRoutes() http.Handler {
 		defaultAuth bool
 	}{
 		{"GET", "/", IndexHandler, false},
-		{"GET", "/obj/:id", GetObject, false},
-		{"GET", "/obj", NotImplemented, false},
+		{"GET", "/obj/:id", GetObject, false},  // legacy
+		{"GET", "/obj", NotImplemented, false}, // legacy
 		{"GET", "/show/:id", ObjectShow, true},
 		{"GET", "/downloads/:id", ObjectDownload, false},
 		{"GET", "/downloads/:id/thumbnail", ObjectDownloadThumbnail, true},
-		{"GET", "/profile", ProfileShow, false},
+		{"GET", "/reset", ResetShow, false},
+		{"POST", "/reset", ResetUpdate, false},
+		{"GET", "/profile", ProfileShow, true},
+		{"POST", "/profile", ProfileUpdate, true},
+		{"GET", "/profile/edit", ProfileEditShow, true},
+		{"POST", "/profile/edit", ProfileEditUpdate, true},
 		{"GET", "/config", ConfigPage, true},
 		{"POST", "/config", UpdateConfig, true},
 	}
@@ -66,12 +71,16 @@ func ShowForbidden(w http.ResponseWriter) {
 // valid, it returns a response asking for better ones and returns false. If it
 // is valid, it returns true.
 func VerifyAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) bool {
-	_, pass, ok := r.BasicAuth()
-	if !ok || pass != AllPassword {
+	username, password, ok := r.BasicAuth()
+	if !ok {
 		ShowForbidden(w)
 		return false
 	}
-
+	err := CheckPassword(username, password)
+	if err != nil {
+		ShowForbidden(w)
+		return false
+	}
 	return true
 }
 

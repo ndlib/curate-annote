@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -47,6 +48,9 @@ func CheckPassword(username, pass string) error {
 
 	// get user record and compare with stored hashed password
 	user := FindUser(username)
+	if user == nil {
+		return ErrPasswordMismatch
+	}
 	err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(pass))
 	if err != nil {
 		return ErrPasswordMismatch
@@ -76,15 +80,6 @@ func FindUserByToken(token string) *User {
 
 func SaveUser(user *User) error {
 	return Datasource.SaveUser(user)
-}
-
-func CheckPasswordRecovery(token string) error {
-	// get user record and compare with stored hashed password
-	user := FindUserByToken(token)
-	if user == nil {
-		return ErrPasswordMismatch
-	}
-	return nil
 }
 
 func ResetPassword(username string, newpass string) error {
@@ -121,4 +116,39 @@ func CreateResetToken(username string) (string, error) {
 
 	err = SaveUser(user)
 	return user.HashedPassword, err
+}
+
+func ClearUserFromCache(username string) {
+	pwcache.Delete(username)
+}
+
+func CreateNewUser() (*User, error) {
+	// first find an unused username
+	// this has a race condition
+	var username string
+	for i := 1; ; i++ {
+		username = fmt.Sprintf("tempuser-%04d", i)
+		u := FindUser(username)
+		if u == nil {
+			break
+		}
+	}
+
+	user := &User{
+		Username: username,
+		Created:  time.Now(),
+	}
+	err := SaveUser(user)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = CreateResetToken(username)
+	if err != nil {
+		return nil, err
+	}
+
+	user = FindUser(username)
+
+	return user, nil
 }

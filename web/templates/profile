@@ -1,0 +1,36 @@
+{{ template "header" }}
+
+<h1>User Profile</h1>
+
+{{ with .User }}
+<table><thead>
+    <tr><th>Property</th><th>Value</th></tr>
+</thead><tbody>
+<tr><td>ID</td><td>{{ .ID }}</td></tr>
+<tr><td>Username</td><td>{{ .Username }}</td></tr>
+<tr><td>Created</td><td>{{ .Created }}</td></tr>
+<tr><td>ORCID</td><td>{{ .ORCID }}</td></tr>
+</table>
+{{ end }}
+
+<form action="/profile/edit">
+    <input type="submit" name="update" value="Update Record">
+</form>
+<form method="POST">
+    <input type="submit" name="newuser", value="Create New User">
+</form>
+<form method="POST">
+    <input type="submit" name="changepass", value="Change Password">
+</form>
+
+{{ with .Message }}
+<p>{{ . }}</p>
+{{ end }}
+
+{{ with .NewUser }}
+<p>New user <tt>{{ .Username }}</tt> created. <a href="/reset?r={{ .HashedPassword }}">Reset the password</a>.</p>
+
+<p>You can change the username after resetting the password.</p>
+{{ end }}
+
+{{ template "footer" }}

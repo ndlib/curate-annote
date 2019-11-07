@@ -328,17 +328,23 @@ func (sq *MysqlDB) FindUserByToken(token string) (*User, error) {
 }
 
 func (sq *MysqlDB) SaveUser(user *User) error {
-	_, err := sq.db.Exec(`INSERT INTO users (username, hashedpassword, created, orcid) VALUES (?, ?, ?, ?)
-		ON DUPLICATE KEY UPDATE username = ?, hashedpassword = ?, created = ?, orcid = ?`,
-		user.Username,
-		user.HashedPassword,
-		user.Created,
-		user.ORCID,
-		user.Username,
-		user.HashedPassword,
-		user.Created,
-		user.ORCID,
-	)
+	var err error
+	if user.ID == 0 {
+		_, err = sq.db.Exec(`INSERT INTO users (username, hashedpassword, created, orcid) VALUES (?, ?, ?, ?)`,
+			user.Username,
+			user.HashedPassword,
+			user.Created,
+			user.ORCID,
+		)
+	} else {
+		_, err = sq.db.Exec(`UPDATE users SET username = ?, hashedpassword=?, created = ?, orcid =? WHERE id = ?`,
+			user.Username,
+			user.HashedPassword,
+			user.Created,
+			user.ORCID,
+			user.ID,
+		)
+	}
 	return err
 }
 

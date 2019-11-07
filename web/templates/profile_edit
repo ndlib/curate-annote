@@ -1,0 +1,23 @@
+{{ template "header" }}
+
+<h1>Edit User Profile</h1>
+
+{{ with .Message }}
+<p>{{ . }}</p>
+{{ end }}
+
+<form method="POST">
+  <fieldset>
+    User ID: <tt>{{ .User.ID }}</tt></br>
+    Created: <tt>{{ .User.Created }}</tt></br>
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" value="{{ .User.Username }}"></br>
+
+    <label for="orcid">ORICD</label>
+    <input type="text" id="orcid" name="orcid" value="{{ .User.ORCID }}"></br>
+
+    <input type="submit" value="Update">
+  </fieldset>
+</form>
+
+{{ template "footer" }}

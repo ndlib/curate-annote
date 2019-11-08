@@ -8,10 +8,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var (
-	AllPassword string
-)
-
 func AddRoutes() http.Handler {
 	var routes = []struct {
 		method      string
@@ -20,9 +16,10 @@ func AddRoutes() http.Handler {
 		defaultAuth bool
 	}{
 		{"GET", "/", IndexHandler, false},
-		{"GET", "/obj/:id", GetObject, false},  // legacy
-		{"GET", "/obj", NotImplemented, false}, // legacy
+		{"GET", "/obj/:id", GetObject, true},  // legacy
+		{"GET", "/obj", NotImplemented, true}, // legacy
 		{"GET", "/show/:id", ObjectShow, true},
+		{"GET", "/show/:id/annotate", ObjectAnnotate, true},
 		{"GET", "/downloads/:id", ObjectDownload, false},
 		{"GET", "/downloads/:id/thumbnail", ObjectDownloadThumbnail, true},
 		{"GET", "/reset", ResetShow, false},

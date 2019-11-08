@@ -76,14 +76,7 @@ func CollectionMembers(pid string) []CurateItem {
 }
 
 func firstField(c CurateItem, targets ...string) string {
-	for _, target := range targets {
-		for i := range c.Properties {
-			if c.Properties[i].Predicate == target {
-				return c.Properties[i].Object
-			}
-		}
-	}
-	return ""
+	return c.FirstField(targets...)
 }
 
 func allFields(c CurateItem, targets ...string) []string {
@@ -188,6 +181,48 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	DoTemplate(w, "show", item)
+}
+
+type annotateTemplate struct {
+	Messages []string
+	Item     CurateItem
+	Title    string
+}
+
+func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var output annotateTemplate
+	pid := ps.ByName("id")
+	if !strings.HasPrefix(pid, "und:") {
+		pid = "und:" + pid
+	}
+
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
+	item, err := Datasource.FindItem(pid)
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Fprintln(w, err)
+		return
+	}
+
+	msg, err := AnnotationStore.UploadItem(item, user)
+	if msg != "" {
+		output.Messages = append(output.Messages, msg)
+	}
+	if err != nil {
+		output.Messages = append(output.Messages, err.Error())
+	}
+	if len(output.Messages) > 0 {
+		output.Item = item
+		output.Title = "Annotate Error"
+
+		w.WriteHeader(500)
+		DoTemplate(w, "annotate-error", output)
+		return
+	}
+
+	http.Redirect(w, r, "/show/"+pid, 302)
 }
 
 func ObjectDownload(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

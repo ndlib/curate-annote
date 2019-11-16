@@ -2,7 +2,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  {{ $title := FirstField . "dc:title" "filename" }}
+  {{ $title := .Title }}
   <title>{{ $title }} // CurateND</title>
 
     <meta name="viewport" content="width=device-width">
@@ -131,160 +131,26 @@
     <div class="row">
       <div class="span12 main-header-with-actions">
         <div class="main-header">
-          <h1>{{ $title }}</h1>
-          <span class="human-readable-type">{{ FirstField . "af-model" }}</span>
-        </div>
-        <div class="page-actions">
-          <a class="btn btn-default" href="#">
-            <i class="icon icon-pencil"></i> Edit </a>
-          <a class="btn btn-primary" href="#">Reindex this Item</a>
-          <a class="btn btn-default" href="/show/{{ .PID }}/annotate">
-            <i class="icon icon-pencil"></i> Annotate This</a>
+          <h2>{{ $title }}</h2>
         </div>
       </div>
     </div>
     <div class="row">
       <div class="span12">
-        <div class="row">
-          <div class="work-representation span3">
-            {{ with FirstField . "representative" }}
-            <a href="/downloads/{{ . }}" target = "_blank">
-              <img alt="Thumbnail" class="representative_image" src="/downloads/{{ . }}/thumbnail" />
-            </a>
-            {{ end }}
-          </div>
-          <div class="work-attributes span9">
-            {{ with AllFields . "dc:description" "dc:abstract" }}
-            <h2 class="abstract-label">Abstract</h2>
-            <section class="abstract-list">
-              <article class="abstract descriptive-text">
-                {{ range . }}
-                <p>{{ decodeUnicode . }}</p>
-                {{ end }}
-              </article>
-            </section>
-            {{ end }}
-
-            <table class="table table-striped article attributes">
-              <caption class="table-heading"><h2>Attributes</h2></caption>
-              <thead>
-                <tr><th>Attribute Name</th><th>Values</th></tr>
-              </thead>
-              <tbody>
-
-                {{ $previous := "" }}
-                {{ range .Properties }}
-                  {{ if ne .Predicate $previous }}
-                      {{ if ne $previous "" }}
-                        </ul></td></tr>
-                      {{ end }}
-                      {{ $previous = .Predicate }}
-                      <tr><th>{{ .Predicate }}</th><td><ul class="tabular">
-                  {{ end }}
-                  <li class="attribute">
-                    {{ if isCompound .Object }}
-                      {{ range $k, $v := splitCompound .Object }}
-                        <b>{{ $k }}</b> {{ $v }}<br/>
-                      {{ end }}
-                    {{ else if isPID .Object }}
-                      <a href="/show/{{ .Object }}">{{ .Object }}</a>
-                    {{ else if isURL .Object }}
-                      <a href="{{ .Object }}">{{ .Object }}</a>
-                    {{ else }}
-                      {{ decodeUnicode .Object }}
-                    {{ end }}</li>
-                {{ end }}
-                </ul></td></tr>
-              </tbody>
-            </table>
-
-            {{ with FirstField . "dc:identifier" "dc:identifier#doi" }}
-              <h2>Digital Object Identifier</h2>
-              <p><strong><a href="https://dx.doi.org/{{ . }}">{{ . }}</a></strong></p>
-              <p>This <abbr title="Digital Object Identifier" data-placement="right">DOI</abbr> is the best way to cite this article.</p>
-            {{ end }}
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="row">
-      <div class="span12">
-
-        {{ with AttachedFiles .PID }}
-        <section id="attached-files">
-          <h2>Files</h2>
-          <table class="table table-striped related-files">
-            <thead>
-              <tr>
-                <th>Thumbnail</th>
-                <th>File Name</th>
-                <th>Description</th>
-                <th>Size</th>
-                <th>Type</th>
-                <th>Access</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{ range . }}
-              <tr class="attributes">
-                <td class="attribute attribute-thumbnail">
-
-                  <a class="canonical-image width-75" href="/downloads/{{ .PID }}">
-                    <img alt="Thumbnail" class="thumbnail" src="/downloads/{{ .PID }}/thumbnail" width="75" />
-
-                  </a>
-                </td>
-                <td class="attribute attribute-filename">{{ FirstField . "filename" }}</td>
-                <td class="attribute attribute-description"></td>
-                <td class="attribute attribute-size">?</td>
-                <td class="attribute attribute-type">{{ FirstField . "mime-type" }}</td>
-                <td class="attribute attribute-access">
-                  {{ FirstField . "read-group" }}
-                </td>
-                <td class="actions">
-                  <div class="actions">
-                    <a class="action btn" href="/downloads/{{ .PID }}" target="_blank">
-                      <i class="icon icon-download"></i> Download File</a>
-                  </div>
-                  <div class="actions">
-                    <a class="action btn" href="/show/{{ .PID }}">
-                      <i class="icon icon-info-sign"></i>
-                      View Details</a>
-                  </div>
-                </td>
-              </tr>
-              {{ end }}
-
-            </tbody>
-          </table>
-          <div class="pager">
-            <div class="page_links">
-              <span class="page_entries">
-                <strong>1</strong> to <strong>1</strong> of <strong>1</strong>
-              </span>
-            </div>
-
-          </div>
-          <div class="section-actions">
-            <a class="btn" href="#">
-              <i class="icon icon-upload"></i> Attach a File
-            </a>        </div>
-        </section>
+        <p>There was an error preparing this item for annotation.</p>
+        {{ with .Messages }}
+        <ul>
+          {{ range . }}
+          <li>{{ . }}</li>
+          {{ end }}
+        </ul>
         {{ end }}
-
-        <h2>Related Works</h2>
-        <p>Add works that are related to this Article.</p>
-        <form accept-charset="UTF-8" action="#" class="edit-related-works" id="edit_article_und_z029p270r6v" method="post">
-          <div style="display:none">
-            <input name="utf8" type="hidden" value="&#x2713;" />
-            <input name="_method" type="hidden" value="patch" />
-            <input name="authenticity_token" type="hidden" value="dftUKI+Hbg/AbilaqXhuA7x3g+mMWtTsM9a1zo7yt0N51AAMWLXQtQ8NKLoNXH+kJ0HHbabE05zJ5jqw+fXQAw==" />
-          </div>
-          <input class="autocomplete tokens" data-exclude="[&quot;und:z029p270r6v&quot;]" data-load="[]" data-url="/catalog?f[generic_type_sim][]=Work" id="article_related_work_tokens" name="article[related_work_tokens]" type="text" value="" />
-          <input class="btn" name="commit" type="submit" value="Update Related Works" />
-        </form>
-
+        <div class="page-actions">
+          <a class="btn btn-default" href="/show/{{ .Item.PID }}">
+            Return To Item</a>
+          <a class="btn btn-default" href="/profile">
+            View My Profile</a>
+        </div>
       </div>
     </div>
   </div>

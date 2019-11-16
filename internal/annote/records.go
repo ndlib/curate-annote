@@ -35,6 +35,17 @@ func (c *CurateItem) Add(predicate string, value string) {
 	})
 }
 
+func (c *CurateItem) FirstField(targets ...string) string {
+	for _, target := range targets {
+		for i := range c.Properties {
+			if c.Properties[i].Predicate == target {
+				return c.Properties[i].Object
+			}
+		}
+	}
+	return ""
+}
+
 type PredicatePair struct {
 	XMLName xml.Name
 	V       string `xml:",any,attr"`

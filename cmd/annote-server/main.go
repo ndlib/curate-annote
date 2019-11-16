@@ -11,13 +11,15 @@ import (
 )
 
 type Config struct {
-	Mysql          string
-	Fedora         string
-	StaticFilePath string
-	TemplatePath   string
-	Port           string
-	CurateURL      string
-	AllPassword    string
+	Mysql                 string
+	Fedora                string
+	StaticFilePath        string
+	TemplatePath          string
+	Port                  string
+	CurateURL             string
+	AnnotationStore       string
+	AnnotationCredentials string
+	Hostname              string
 }
 
 var (
@@ -59,7 +61,12 @@ func main() {
 		annote.Datasource = db
 	}
 	annote.CurateURL = config.CurateURL
-	annote.AllPassword = config.AllPassword
+
+	annote.AnnotationStore = &annote.AnnoStore{
+		Host:             config.AnnotationStore,
+		UsernamePassword: config.AnnotationCredentials,
+		OurURL:           config.Hostname,
+	}
 
 	if config.TemplatePath != "" {
 		err := annote.LoadTemplates(config.TemplatePath)

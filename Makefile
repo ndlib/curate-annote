@@ -19,3 +19,11 @@ clean:
 # Need to include initial "./" in path so go knows it is a relative package path.
 annote-server:
 	$(GOCMD) build ./cmd/annote-server
+
+# to be run on the server. updates the running system.
+deploy: annote-server
+	rsync -a web/ /opt/annote/web
+	sudo sv down annote
+	cp ./annote-server /opt/annote
+	sudo sv up annote
+

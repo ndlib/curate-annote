@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<a href="/">Home</a> • <a href="/config">Settings</a> • <a href="/profile">Profile</a><br/>
+  <a href="/">Home</a> • <a href="/config">Settings</a> • <a href="/profile">Profile</a><br/>
 
   <header role="banner" class="page-banner">
     <div class="brand-bar-wrapper">
@@ -58,7 +58,7 @@
         <div class="action-bar row">
           <div class="span12">
             <div class="site-search">
-              <form accept-charset="UTF-8" action="/catalog" class="search-form" method="get">
+              <form accept-charset="UTF-8" action="/search" class="search-form" method="get">
                 <div style="display:none">
                   <input name="utf8" type="hidden" value="&#x2713;" />
                 </div>
@@ -273,18 +273,6 @@
         </section>
         {{ end }}
 
-        <h2>Related Works</h2>
-        <p>Add works that are related to this Article.</p>
-        <form accept-charset="UTF-8" action="#" class="edit-related-works" id="edit_article_und_z029p270r6v" method="post">
-          <div style="display:none">
-            <input name="utf8" type="hidden" value="&#x2713;" />
-            <input name="_method" type="hidden" value="patch" />
-            <input name="authenticity_token" type="hidden" value="dftUKI+Hbg/AbilaqXhuA7x3g+mMWtTsM9a1zo7yt0N51AAMWLXQtQ8NKLoNXH+kJ0HHbabE05zJ5jqw+fXQAw==" />
-          </div>
-          <input class="autocomplete tokens" data-exclude="[&quot;und:z029p270r6v&quot;]" data-load="[]" data-url="/catalog?f[generic_type_sim][]=Work" id="article_related_work_tokens" name="article[related_work_tokens]" type="text" value="" />
-          <input class="btn" name="commit" type="submit" value="Update Related Works" />
-        </form>
-
       </div>
     </div>
   </div>
@@ -320,4 +308,3 @@
   </div>
 
 </body>
-</html>

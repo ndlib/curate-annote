@@ -99,6 +99,28 @@ func configValue(key string) string {
 	return v
 }
 
+func add0(values ...int) int {
+	result := 0
+	for _, v := range values {
+		result += v
+	}
+	return result
+}
+
+func sub0(limit int, values ...int) int {
+	var result int
+	if len(values) > 0 {
+		result = values[0]
+		for _, v := range values[1:] {
+			result -= v
+		}
+	}
+	if result < limit {
+		result = limit
+	}
+	return result
+}
+
 // LoadTemplates will load and compile our templates into memory
 func LoadTemplates(path string) error {
 	t := template.New("")
@@ -113,6 +135,8 @@ func LoadTemplates(path string) error {
 		"FirstField":        firstField,
 		"AllFields":         allFields,
 		"ConfigValue":       configValue,
+		"add":               add0,
+		"sub":               sub0,
 	})
 	t, err := t.ParseGlob(filepath.Join(path, "*"))
 	Templates = t
@@ -223,6 +247,57 @@ func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	}
 
 	http.Redirect(w, r, "/show/"+pid, 302)
+}
+
+type searchresults struct {
+	Title      string
+	User       *User
+	Query      string
+	Page       int
+	NumPerPage int
+	StartIndex int
+	ItemList   []CurateItem
+}
+
+func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	query := r.FormValue("q")
+	page0 := r.FormValue("p")
+	numperpage0 := r.FormValue("n")
+
+	page := parseIntDefault(page0, 0)
+	numperpage := parseIntDefault(numperpage0, 10)
+
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
+	offset := numperpage * page
+
+	items, err := Datasource.FindAllRange(offset, numperpage)
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Fprintln(w, err)
+		return
+	}
+
+	output := searchresults{
+		Title:      "Search",
+		User:       user,
+		Query:      query,
+		Page:       page,
+		NumPerPage: numperpage,
+		StartIndex: offset + 1,
+		ItemList:   items,
+	}
+
+	DoTemplate(w, "search", output)
+}
+
+func parseIntDefault(s string, v int) int {
+	n, err := strconv.ParseInt(s, 10, 32)
+	if err != nil || n < 0 {
+		return v
+	}
+	return int(n)
 }
 
 func ObjectDownload(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

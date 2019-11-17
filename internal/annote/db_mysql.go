@@ -289,13 +289,13 @@ func (sq *MysqlDB) FindAllRange(offset, count int) ([]CurateItem, error) {
 	log.Println("findallrange", offset, count)
 	var result []CurateItem
 	rows, err := sq.db.Query(`
+		WITH targets as (SELECT subject FROM triples
+			WHERE predicate = "af-model" AND
+			object NOT IN ("GenericFile", "Person", "Profile")
+			LIMIT ? OFFSET ?)
 		SELECT subject, predicate, object
 		FROM triples
-		WHERE subject IN (
-			SELECT subject
-			FROM triples
-			WHERE predicate = "af-model"
-			LIMIT ? OFFSET ?)
+		WHERE subject IN (select * from targets)
 		ORDER BY subject, id`,
 		count,
 		offset,

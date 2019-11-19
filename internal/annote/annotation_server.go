@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -45,6 +44,13 @@ type SubmitRAP struct {
 	ContentAccess    string   `json:"content-access"`
 	Copyright        string   `json:"copyright"`
 	License          string   `json:"license"`
+}
+
+type ItemUUID struct {
+	Item     string
+	Username string
+	UUID     string
+	Status   string
 }
 
 type AnnoStore struct {
@@ -116,7 +122,20 @@ func (as *AnnoStore) UploadItem(item CurateItem, uploader *User) (string, error)
 	}
 	rap.Content = content
 
-	err = as.sendRAP(&rap)
+	response, err := as.sendRAP(&rap)
+
+	if err != nil || !response.Success {
+		return response.Error, err
+	}
+
+	uuid := ItemUUID{
+		Item:     item.PID,
+		Username: uploader.Username,
+		UUID:     response.Created.UUID,
+		Status:   response.Created.Metadata.Status.Code,
+	}
+
+	err = Datasource.UpdateUUID(uuid)
 
 	return "", err
 }
@@ -128,18 +147,24 @@ type rapResponse struct {
 }
 
 type rapCreated struct {
-	UUID string `json:"uuid"`
+	UUID     string `json:"uuid"`
+	Metadata struct {
+		Status struct {
+			Code        string `json:"code"`
+			Description string `json:"desc"`
+		} `json:"status"`
+	} `json:"_metadata"`
 }
 
-func (as *AnnoStore) sendRAP(rap *SubmitRAP) error {
-	// curl -v -b "s=dev0:testingx" -H "Content-Type: application/json" -d @rap-test-1.json https://ara.anno-store.org/api/1/rap
+func (as *AnnoStore) sendRAP(rap *SubmitRAP) (rapResponse, error) {
+	var result rapResponse
 	jsontext, err := json.Marshal(rap)
 
 	body := bytes.NewReader(jsontext)
 	url := as.Host + "/api/1/rap"
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
-		return err
+		return result, err
 	}
 	// put "bot" in the user agent so it won't be counted in the curate metrics
 	req.Header.Set("Content-Type", "application/json")
@@ -156,15 +181,15 @@ func (as *AnnoStore) sendRAP(rap *SubmitRAP) error {
 
 	resp, err := TimeoutClient.Do(req)
 	if err != nil {
-		return err
+		return result, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		log.Println("GET", url, "returned", resp.Status)
 	}
 	// read the response...?
-	respbody, _ := ioutil.ReadAll(resp.Body)
-	log.Println(string(respbody))
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&result)
 
-	return nil
+	return result, err
 }

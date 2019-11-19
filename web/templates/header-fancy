@@ -1,0 +1,103 @@
+{{/* Assumes there is a .Title field */}}
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>{{ .Title }} // CurateND</title>
+
+    <meta name="viewport" content="width=device-width">
+
+    <link href="/static/application.css" media="screen, print" rel="stylesheet" />
+
+    <script src="/static/modernizr.js"></script>
+    <script src="/static/application.js"></script>
+</head>
+<body>
+
+<a href="/">Home</a>
+• <a href="/config">Settings</a>
+• <a href="/profile">Profile</a> 
+• <a href="/anno">Annotation Status</a> <br/>
+
+  <header role="banner" class="page-banner">
+    <div class="brand-bar-wrapper">
+      <div class="container">
+        <div class="row">
+          <div id="brand-bar" class="span12">
+            <div class="top-link university">
+              <a href="https://www.nd.edu">University <i>of</i> Notre Dame</a>
+            </div>
+            <div class="top-link division">
+              <a href="https://library.nd.edu">Hesburgh Libraries</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="title-bar-wrapper">
+      <div class="container">
+        <div class="row">
+          <div id="title-bar" class="span12">
+            <div class="site-title">
+              <a class="home-link" href="/"><img class="curate-nd-logo" src="/static/curatend.svg"></a>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar row">
+          <div class="span12">
+            <div class="site-search">
+              <form accept-charset="UTF-8" action="/search" class="search-form" method="get">
+                <fieldset>
+                  <legend class="accessible-hidden">Search CurateND</legend>
+                  <label class="accessible-hidden" for="catalog_search">Search CurateND</label>
+                  <input class="q search-query" id="catalog_search" name="q" placeholder="Search CurateND" size="30" tabindex="1" type="search" />
+                  <button type="submit" class="search-submit" id="keyword-search-submit">
+                    <img class="search-icon" src="/static/search.svg">
+                    <span class="accessible-hidden">Search</span>
+                  </button>
+                </fieldset>
+              </form>
+            </div>
+
+            <nav class="site-actions" role="menu">
+              <a class="btn btn-primary about" href="/about" role="menuitem">About</a>
+              <div class="btn-group add-content">
+                <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="/deposit" id="add-content">
+                  Deposit<span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu quick-create">
+                  <li><a class="contextual-quick-classify new-article" href="/concern/articles/new" role="menuitem">New Article</a></li>
+                  <li><a class="contextual-quick-classify new-dataset" href="/concern/datasets/new" role="menuitem">New Dataset</a></li>
+                  <li><a class="contextual-quick-classify new-document" href="/concern/documents/new" role="menuitem">New Document</a></li>
+                  <li><a class="contextual-quick-classify new-image" href="/concern/images/new" role="menuitem">New Image</a></li>
+                  <li><a class="link-to-full-list" href="/deposit" role="menuitem">More Options</a></li>
+                  <li class="divider"></li>
+                  <li><a href="/admin/ingest_osf_archives/new">Import OSF archive</a></li>
+                </ul>
+              </div>
+
+              <div class="btn-group my-actions">
+                <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
+                  Manage<span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu">
+                  <li><a class="my-works" href="/catalog?f%5Bgeneric_type_sim%5D%5B%5D=Work&amp;works=mine" role="menuitem">My Works</a></li>
+                  <li><a class="my-groups" href="/hydramata/groups" role="menuitem">Group Administration</a></li>
+                  <li><a class="my-account" href="/profile" role="menuitem">My Account</a></li>
+                  <li class="divider"></li>
+                  <li><a href="/access_tokens" role="menuitem">Temporary Access Grants</a></li>
+                  <li><a href="/api/access_tokens" role="menuitem">API Access Tokens</a></li>
+                  <li class="divider"></li>
+                  <li><a href="/admin" role="menuitem">Repository Administration</a></li>
+                  <li class="divider"></li>
+                  <li><a class="log-out" href="/users/sign_out" role="menuitem">Log Out</a></li>
+                </ul>
+              </div>
+
+              <a class="btn btn-primary faq" href="/faqs" role="menuitem">FAQ</a>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>

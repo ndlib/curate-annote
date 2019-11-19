@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 28 28" preserveAspectRatio="xMinYMin meet">
+<style type="text/css">
+.lense {stroke-width:3; fill:none; stroke:#002b5b;}
+.handle {stroke-width:5; stroke:#002b5b;}
+.cap {fill:#002b5b; stroke:none;}
+</style>
+<circle class="lense" cx="10.73" cy="10.73" r="8.85"/>
+<line class="handle" x1="16.99" y1="16.99" x2="24.79" y2="24.79"/>
+<circle class="cap" cx="24.79" cy="24.79" r="2.5"/>
+</svg>

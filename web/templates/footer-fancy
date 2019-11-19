@@ -1,0 +1,20 @@
+
+  <div class="page-footer-wrapper">
+    <footer class="page-footer container">
+      <div class="row">
+        <div class="span8 footer-left">
+          <p>CurateND is a service of the <a href="https://library.nd.edu">Hesburgh Libraries of Notre Dame</a>.</p>
+          <p>Questions? Call <a href="tel:5746316258">(574) 631-6258</a> or email curate@nd.edu.</p>
+          <p><a href="https://www.nd.edu/copyright/">Copyright</a> &copy; 2019 <a href="https://www.nd.edu/">University of Notre Dame</a></p>
+        </div>
+
+        <div class="span4 footer-right">
+          <div class="hesburgh-mark">
+            <a href="https://library.nd.edu"><span class="visuallyhidden">University of Notre Dame Hesburgh Libraries</span></a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+</body>

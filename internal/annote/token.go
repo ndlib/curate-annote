@@ -38,11 +38,11 @@ func CreateLimitedToken(item string, user string) *LimitedToken {
 		Used:    false,
 	}
 
-	err = Datasource.SaveTLLToken(t)
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
+	//err = Datasource.SaveTLLToken(t)
+	//if err != nil {
+	//	log.Println(err)
+	//	return nil
+	//}
 
 	return &t
 }

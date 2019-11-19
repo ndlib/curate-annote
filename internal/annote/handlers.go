@@ -300,6 +300,41 @@ func parseIntDefault(s string, v int) int {
 	return int(n)
 }
 
+type annotatePage struct {
+	Title    string
+	User     *User
+	Query    string
+	Messages []string
+	Records  []ItemUUID
+}
+
+func ShowAnnotateStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var output annotatePage
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
+	userq := r.FormValue("user")
+	switch userq {
+	case "all":
+		userq = ""
+	case "":
+		userq = username
+	default:
+	}
+	itemq := r.FormValue("item")
+	statusq := r.FormValue("status")
+
+	ids, err := Datasource.SearchItemUUID(itemq, userq, statusq)
+	if err != nil {
+		output.Messages = append(output.Messages, err.Error())
+	}
+	output.Title = "Annotation Upload Status Page"
+	output.User = user
+	output.Records = ids
+
+	DoTemplate(w, "anno-status", output)
+}
+
 func ObjectDownload(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	pid := ps.ByName("id")
 	pid = strings.TrimPrefix(pid, "und:")

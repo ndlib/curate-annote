@@ -23,6 +23,7 @@ func AddRoutes() http.Handler {
 		{"GET", "/downloads/:id", ObjectDownload, false},
 		{"GET", "/downloads/:id/thumbnail", ObjectDownloadThumbnail, true},
 		{"GET", "/search", SearchPage, true},
+		{"GET", "/anno", ShowAnnotateStatus, true},
 		{"GET", "/reset", ResetShow, false},
 		{"POST", "/reset", ResetUpdate, false},
 		{"GET", "/profile", ProfileShow, true},

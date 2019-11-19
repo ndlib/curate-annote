@@ -3,6 +3,7 @@ package annote
 import (
 	"database/sql"
 	"log"
+	"strings"
 
 	"github.com/BurntSushi/migration"
 	_ "github.com/go-sql-driver/mysql"
@@ -16,6 +17,7 @@ type MysqlDB struct {
 var migrations = []migration.Migrator{
 	migration1,
 	migration2,
+	migration3,
 }
 
 func migration1(tx migration.LimitedTx) error {
@@ -50,16 +52,15 @@ func migration2(tx migration.LimitedTx) error {
 
 func migration3(tx migration.LimitedTx) error {
 	var s = []string{
-		`CREATE TABLE IF NOT EXISTS tll_tokens (
+		`CREATE TABLE IF NOT EXISTS anno_uuid (
 		id int PRIMARY KEY AUTO_INCREMENT,
-		token varchar(255),
-		creator varchar(255),
-		created datetime,
-		expire  datetime,
-		used    bool,
-		item    varchar(255)
-		INDEX i_token (token),
-		INDEX i_item (item))`,
+		item varchar(64),
+		username varchar(255),
+		uuid varchar(64),
+		status varchar(32),
+		INDEX i_item (item),
+		INDEX i_username (username),
+		INDEX i_status (status))`,
 	}
 	return execlist(tx, s)
 }
@@ -286,9 +287,9 @@ func (sq *MysqlDB) FindCollectionMembers(pid string) ([]CurateItem, error) {
 }
 
 func (sq *MysqlDB) FindAllRange(offset, count int) ([]CurateItem, error) {
-	// The deployed database is only mysql 5.7, and there is no support
-	// for WITH statements or using LIMIT in IN subqueries. So we use an
-	// interesting JOIN trick to limit the number of items.
+	// The deployed database is mysql 5.7, and there is no support for WITH
+	// statements or using LIMIT in IN subqueries. So we use an interesting
+	// JOIN trick to limit the number of items.
 	// reference: https://stackoverflow.com/questions/3984097
 	log.Println("findallrange", offset, count)
 	var result []CurateItem
@@ -353,16 +354,67 @@ func (sq *MysqlDB) SaveUser(user *User) error {
 	return err
 }
 
-func (sq *MysqlDB) FindTLLByToken(token string) {
+func (sq *MysqlDB) SearchItemUUID(item string, username string, status string) ([]ItemUUID, error) {
+	var clauses []string
+	var params []interface{}
+
+	if item != "" {
+		clauses = append(clauses, "item = ?")
+		params = append(params, item)
+	}
+	if username != "" {
+		clauses = append(clauses, "username = ?")
+		params = append(params, username)
+	}
+	if status != "" {
+		clauses = append(clauses, "status = ?")
+		params = append(params, status)
+	}
+	q := `SELECT item, username, uuid, status FROM anno_uuid`
+	if len(clauses) > 0 {
+		q = q + ` WHERE ` + strings.Join(clauses, " AND ")
+	}
+	var result []ItemUUID
+	rows, err := sq.db.Query(q, params...)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var current ItemUUID
+		err2 := rows.Scan(&current.Item, &current.Username, &current.UUID, &current.Status)
+		if err2 != nil {
+			err = err2
+			continue
+		}
+		result = append(result, current)
+	}
+
+	return result, err
 }
 
-func (sq *MysqlDB) SaveTLLToken(token LimitedToken) error {
-	_, err := sq.db.Exec(`INSERT INTO tll_tokens (token, creator, created, expire, used, item) VALUES (?,?,?,?,?,?)`,
-		token.Token,
-		token.Creator,
-		token.Created,
-		token.Expire,
-		token.Used,
-		token.Item)
+func (sq *MysqlDB) UpdateUUID(record ItemUUID) error {
+	// see if this is an insert or an update
+	r, err := sq.SearchItemUUID(record.Item, record.Username, "")
+	if err != nil {
+		return err
+	}
+	if len(r) == 0 {
+		// insert new record
+		_, err = sq.db.Exec(`INSERT INTO anno_uuid (item, username, uuid, status) VALUES (?, ?, ?, ?)`,
+			record.Item,
+			record.Username,
+			record.UUID,
+			record.Status,
+		)
+		return err
+	}
+	// update existing record
+	_, err = sq.db.Exec(`UPDATE anno_uuid SET uuid = ?, status = ? WHERE item = ? AND username = ?`,
+		record.UUID,
+		record.Status,
+		record.Item,
+		record.Username,
+	)
 	return err
 }

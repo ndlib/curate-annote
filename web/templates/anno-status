@@ -11,7 +11,6 @@
     </div>
     <div class="row">
       <div class="span12">
-        <p>There was an error preparing this item for annotation.</p>
         {{ with .Messages }}
         <ul>
           {{ range . }}
@@ -19,12 +18,24 @@
           {{ end }}
         </ul>
         {{ end }}
-        <div class="page-actions">
-          <a class="btn btn-default" href="/show/{{ .Item.PID }}">
-            Return To Item</a>
-          <a class="btn btn-default" href="/profile">
-            View My Profile</a>
-        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="span12">
+        <table class="table table-striped">
+          <thead>
+            <tr><th>UUID</th><th>Item</th><th>User Name</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {{ range .Records }}
+            <tr><td>{{ .UUID }}</td>
+              <td><a href="/show/{{ .Item }}">{{ .Item }}</a></td>
+              <td>{{ .Username }}</td>
+              <td>{{ .Status }}</td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>

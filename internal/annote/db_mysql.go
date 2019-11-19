@@ -286,17 +286,22 @@ func (sq *MysqlDB) FindCollectionMembers(pid string) ([]CurateItem, error) {
 }
 
 func (sq *MysqlDB) FindAllRange(offset, count int) ([]CurateItem, error) {
+	// The deployed database is only mysql 5.7, and there is no support
+	// for WITH statements or using LIMIT in IN subqueries. So we use an
+	// interesting JOIN trick to limit the number of items.
+	// reference: https://stackoverflow.com/questions/3984097
 	log.Println("findallrange", offset, count)
 	var result []CurateItem
 	rows, err := sq.db.Query(`
-		WITH targets as (SELECT subject FROM triples
+		SELECT t.subject, t.predicate, t.object
+		FROM triples AS t
+		    LEFT JOIN (SELECT subject FROM triples
 			WHERE predicate = "af-model" AND
 			object NOT IN ("GenericFile", "Person", "Profile")
-			LIMIT ? OFFSET ?)
-		SELECT subject, predicate, object
-		FROM triples
-		WHERE subject IN (select * from targets)
-		ORDER BY subject, id`,
+			LIMIT ? OFFSET ?) AS z
+		    ON z.subject = t.subject
+		WHERE z.subject IS NOT NULL
+		ORDER BY t.subject, t.id`,
 		count,
 		offset,
 	)

@@ -101,7 +101,7 @@ func (as *AnnoStore) UploadItem(item CurateItem, uploader *User) (string, error)
 	}
 	rap := SubmitRAP{
 		ID:            item.PID,
-		PID:           item.PID,
+		PID:           item.FindFirst("dc:identifier", "dc:identifier#doi"),
 		Action:        "create",
 		RepositoryURL: as.OurURL + "/show/" + item.PID,
 		Title:         item.FirstField("dc:title"),

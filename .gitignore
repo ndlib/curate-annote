@@ -3,3 +3,4 @@ download_cache/*
 .*.sw?
 /annote-server
 /cmd/annote-server/annote-server
+**/config

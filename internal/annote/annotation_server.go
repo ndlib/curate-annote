@@ -101,7 +101,7 @@ func (as *AnnoStore) UploadItem(item CurateItem, uploader *User) (string, error)
 	}
 	rap := SubmitRAP{
 		ID:            item.PID,
-		PID:           item.FindFirst("dc:identifier", "dc:identifier#doi"),
+		PID:           item.FirstField("dc:identifier", "dc:identifier#doi"),
 		Action:        "create",
 		RepositoryURL: as.OurURL + "/show/" + item.PID,
 		Title:         item.FirstField("dc:title"),
@@ -192,4 +192,8 @@ func (as *AnnoStore) sendRAP(rap *SubmitRAP) (rapResponse, error) {
 	err = decoder.Decode(&result)
 
 	return result, err
+}
+
+func (as *AnnoStore) ViewerURL(uuid string) string {
+	return as.Host + "/mirador/uuid/" + uuid
 }

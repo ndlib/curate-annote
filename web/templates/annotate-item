@@ -11,14 +11,12 @@
     </div>
     <div class="row">
       <div class="span12">
-        <p>There was an error preparing this item for annotation.</p>
-        {{ with .Messages }}
-        <ul>
-          {{ range . }}
-          <li>{{ . }}</li>
-          {{ end }}
-        </ul>
+        {{ range .Messages }}
+        <p>{{ . }}</p>
         {{ end }}
+        <p>When this item is available, it can be found at
+          <a href="{{ .AnnoURL }}">{{ .AnnoURL }}</a>.
+        </p>
         <div class="page-actions">
           <a class="btn btn-default" href="/show/{{ .Item.PID }}">
             Return To Item</a>

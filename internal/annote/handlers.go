@@ -193,7 +193,17 @@ func UpdateConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	ConfigPage(w, r, ps)
 }
 
+type showTemplate struct {
+	Messages []string
+	Item     CurateItem
+	User     *User
+	Title    string
+}
+
 func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
 	pid := ps.ByName("id")
 	if !strings.HasPrefix(pid, "und:") {
 		pid = "und:" + pid
@@ -204,13 +214,18 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fmt.Fprintln(w, err)
 		return
 	}
-	DoTemplate(w, "show", item)
+	DoTemplate(w, "show", showTemplate{
+		Item:  item,
+		User:  user,
+		Title: item.FirstField("dc:title", "filename"),
+	})
 }
 
 type annotateTemplate struct {
 	Messages []string
 	Item     CurateItem
 	Title    string
+	AnnoURL  string
 }
 
 func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -220,9 +235,6 @@ func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		pid = "und:" + pid
 	}
 
-	username, _, _ := r.BasicAuth()
-	user := FindUser(username)
-
 	item, err := Datasource.FindItem(pid)
 	if err != nil {
 		w.WriteHeader(500)
@@ -230,23 +242,48 @@ func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		return
 	}
 
-	msg, err := AnnotationStore.UploadItem(item, user)
-	if msg != "" {
-		output.Messages = append(output.Messages, msg)
-	}
-	if err != nil {
-		output.Messages = append(output.Messages, err.Error())
-	}
-	if len(output.Messages) > 0 {
-		output.Item = item
-		output.Title = "Annotate Error"
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
 
+	// is there already a UUID for this (item, user) pair?
+	ids, err := Datasource.SearchItemUUID(pid, username, "")
+	if err != nil {
 		w.WriteHeader(500)
-		DoTemplate(w, "annotate-error", output)
+		fmt.Fprintln(w, err)
 		return
 	}
+	switch {
+	case len(ids) == 0:
+		// upload the item
+		msg, err := AnnotationStore.UploadItem(item, user)
+		if msg != "" {
+			output.Messages = append(output.Messages, msg)
+		}
+		if err != nil {
+			output.Messages = append(output.Messages, err.Error())
+		}
 
-	http.Redirect(w, r, "/show/"+pid, 302)
+		// get the uuid to provide a courtesy link
+		ids, err = Datasource.SearchItemUUID(pid, username, "")
+		if err != nil {
+			w.WriteHeader(500)
+			fmt.Fprintln(w, err)
+			return
+		}
+		fallthrough
+	case len(ids) > 0 && ids[0].Status == "p":
+		// item is uploaded and is processing
+		output.Messages = append(output.Messages, "This item is being transferred to the annotation server.")
+		output.AnnoURL = AnnotationStore.ViewerURL(ids[0].UUID)
+	case len(ids) > 0:
+		// item is uploaded and can be viewed
+		target := AnnotationStore.ViewerURL(ids[0].UUID)
+		http.Redirect(w, r, target, 302)
+	}
+
+	output.Item = item
+	output.Title = "Annotation Upload"
+	DoTemplate(w, "annotate-item", output)
 }
 
 type searchresults struct {

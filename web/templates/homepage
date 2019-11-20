@@ -2,4 +2,8 @@
 
 <h1>CurateND Annotation Test Server</h1>
 
+<p>This is a non-public test server.</p>
+
+<p><a href="/search">Enter</a></p>
+
 {{ template "footer" }}

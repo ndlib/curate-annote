@@ -297,82 +297,115 @@ func StartBackgroundProcess() {
 	go backgroundRAPchecker(AnnoChan)
 }
 
+type rapWorkerResult struct {
+	NumNotComplete int
+	Err            error
+}
+
 func backgroundRAPchecker(c <-chan struct{}) {
-	const defaultTimeout = 24 * time.Hour
-	d := defaultTimeout
-	var lastpoll time.Time
+	// We want to balance being timely with updates without polling the
+	// annotation server too much. This is accomplished in two ways:
+	// First, we only poll when there is an item that is not complete.
+	// Second, we set a limit that we will not poll the annotation server
+	// more frequently than.
+	const minInterval = 30 * time.Second
+	workerResult := make(chan rapWorkerResult)
+	nextpoll := time.Now().Add(minInterval) // so even after restarts, we always wait the time period
+	inDeepSleep := false
 	for {
+		d := minInterval
+		if inDeepSleep {
+			d = 24 * time.Hour
+		}
 	sleeploop:
-		log.Println("@@@ sleeping")
+		log.Println("@@@ sleeping", d)
 		select {
 		case <-c:
 			// there is something we should monitor, so shorten our timeout
-			d = 30 * time.Second
-			log.Println("receive signal")
+			inDeepSleep = false
+			log.Println("@@@ receive signal")
+
 		case <-time.After(d):
-			log.Println("receive timer")
-		}
-		// poll anno server no more than once every 30 seconds
-		if time.Now().Before(lastpoll.Add(30 * time.Second)) {
-			log.Println(lastpoll.Add(30*time.Second), "sleeploop")
-			d = 15 * time.Second
-			goto sleeploop
+			log.Println("@@@ receive timer")
 		}
 
-		lastpoll = time.Now()
-		log.Println("polling Annotation Store")
-		// check the status of all our RAPs.
-		raps, err := AnnotationStore.RAPStatus()
-		if err != nil {
-			log.Println(err)
-			d = 1 * time.Minute
-			continue
-		}
-		UUIDs, err := Datasource.SearchItemUUID("", "", "")
-		if err != nil {
-			log.Println(err)
-			d = 1 * time.Minute
-			continue
+		// if polling too soon, go back to sleep
+		if time.Now().Before(nextpoll) {
+			d = nextpoll.Sub(time.Now())
+			goto sleeploop // so we can supply custom duration
 		}
 
-		notComplete := 0
-	big_loop:
-		for _, record := range UUIDs {
-			if record.Status == "a" {
-				// complete. skip it for now
-				continue
+		// do a single poll....
+		nextpoll = time.Now().Add(minInterval)
+		go checkRAPs(workerResult)
+		inDeepSleep = true
+	keep_waiting:
+		// wait for response
+		log.Println("@@@ waiting for status")
+		select {
+		case <-c: // eat these so nothing else blocks
+			log.Println("@@@@ receive signal")
+			inDeepSleep = false
+			goto keep_waiting
+		case r := <-workerResult:
+			if r.Err != nil || r.NumNotComplete > 0 {
+				// need to do another poll
+				inDeepSleep = false
 			}
-			// is there an entry for this UUID in that status update?
-			for i := range raps {
-				if raps[i].UUID != record.UUID {
-					continue
-				}
-
-				rap := raps[i]
-				// also verify the ID...?
-				if rap.Status.Code != "a" {
-					notComplete++
-				}
-				if rap.Status.Code == record.Status {
-					break // nothing to update
-				}
-				// update our record to the new status
-				record.Status = rap.Status.Code
-				err = Datasource.UpdateUUID(record)
-				if err != nil {
-					log.Println(err)
-					d = 1 * time.Minute
-					continue big_loop
-				}
-				break
-			}
-		}
-
-		// if everything is processed, then go to a deep sleep
-		if notComplete == 0 {
-			d = defaultTimeout
 		}
 	}
+}
+
+func checkRAPs(out chan<- rapWorkerResult) {
+	log.Println("polling Annotation Store")
+	raps, err := AnnotationStore.RAPStatus()
+	if err != nil {
+		log.Println(err)
+		out <- rapWorkerResult{Err: err}
+		return
+	}
+	UUIDs, err := Datasource.SearchItemUUID("", "", "")
+	if err != nil {
+		log.Println(err)
+		out <- rapWorkerResult{Err: err}
+		return
+	}
+
+	notComplete := 0
+	var bigerr error
+big_loop:
+	for _, record := range UUIDs {
+		if record.Status == "a" {
+			// complete. skip it for now
+			continue
+		}
+		// is there an entry for this UUID in that status update?
+		for i := range raps {
+			if raps[i].UUID != record.UUID {
+				continue
+			}
+
+			rap := raps[i]
+			// also verify the ID...?
+			if rap.Status.Code != "a" {
+				notComplete++
+			}
+			if rap.Status.Code == record.Status {
+				break // nothing to update
+			}
+			// update our record to the new status
+			record.Status = rap.Status.Code
+			err = Datasource.UpdateUUID(record)
+			if err != nil {
+				log.Println(err)
+				bigerr = err
+				continue big_loop
+			}
+			break
+		}
+	}
+
+	out <- rapWorkerResult{NumNotComplete: notComplete, Err: bigerr}
 }
 
 type searchresults struct {

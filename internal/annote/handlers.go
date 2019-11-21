@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -193,7 +194,17 @@ func UpdateConfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	ConfigPage(w, r, ps)
 }
 
+type showTemplate struct {
+	Messages []string
+	Item     CurateItem
+	User     *User
+	Title    string
+}
+
 func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
 	pid := ps.ByName("id")
 	if !strings.HasPrefix(pid, "und:") {
 		pid = "und:" + pid
@@ -204,13 +215,18 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fmt.Fprintln(w, err)
 		return
 	}
-	DoTemplate(w, "show", item)
+	DoTemplate(w, "show", showTemplate{
+		Item:  item,
+		User:  user,
+		Title: item.FirstField("dc:title", "filename"),
+	})
 }
 
 type annotateTemplate struct {
 	Messages []string
 	Item     CurateItem
 	Title    string
+	AnnoURL  string
 }
 
 func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -220,9 +236,6 @@ func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		pid = "und:" + pid
 	}
 
-	username, _, _ := r.BasicAuth()
-	user := FindUser(username)
-
 	item, err := Datasource.FindItem(pid)
 	if err != nil {
 		w.WriteHeader(500)
@@ -230,23 +243,136 @@ func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		return
 	}
 
-	msg, err := AnnotationStore.UploadItem(item, user)
-	if msg != "" {
-		output.Messages = append(output.Messages, msg)
-	}
-	if err != nil {
-		output.Messages = append(output.Messages, err.Error())
-	}
-	if len(output.Messages) > 0 {
-		output.Item = item
-		output.Title = "Annotate Error"
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
 
+	// is there already a UUID for this (item, user) pair?
+	ids, err := Datasource.SearchItemUUID(pid, username, "")
+	if err != nil {
 		w.WriteHeader(500)
-		DoTemplate(w, "annotate-error", output)
+		fmt.Fprintln(w, err)
 		return
 	}
+	switch {
+	case len(ids) == 0:
+		// upload the item
+		msg, err := AnnotationStore.UploadItem(item, user)
+		if msg != "" {
+			output.Messages = append(output.Messages, msg)
+		}
+		if err != nil {
+			output.Messages = append(output.Messages, err.Error())
+		}
 
-	http.Redirect(w, r, "/show/"+pid, 302)
+		// get the uuid to provide a courtesy link
+		ids, err = Datasource.SearchItemUUID(pid, username, "")
+		if err != nil {
+			w.WriteHeader(500)
+			fmt.Fprintln(w, err)
+			return
+		}
+		fallthrough
+	case len(ids) > 0 && ids[0].Status != "a":
+		// item is uploaded and is processing
+		output.Messages = append(output.Messages, "This item is being transferred to the annotation server.")
+		output.AnnoURL = AnnotationStore.ViewerURL(ids[0].UUID)
+		AnnoChan <- struct{}{}
+	case len(ids) > 0:
+		// item is uploaded and can be viewed
+		target := AnnotationStore.ViewerURL(ids[0].UUID)
+		http.Redirect(w, r, target, 302)
+	}
+
+	output.Item = item
+	output.Title = "Annotation for " + item.FirstField("dc:title", "filename")
+	DoTemplate(w, "annotate-item", output)
+}
+
+var (
+	AnnoChan chan struct{}
+)
+
+func StartBackgroundProcess() {
+	AnnoChan = make(chan struct{})
+	go backgroundRAPchecker(AnnoChan)
+}
+
+func backgroundRAPchecker(c <-chan struct{}) {
+	const defaultTimeout = 24 * time.Hour
+	d := defaultTimeout
+	var lastpoll time.Time
+	for {
+	sleeploop:
+		log.Println("@@@ sleeping")
+		select {
+		case <-c:
+			// there is something we should monitor, so shorten our timeout
+			d = 30 * time.Second
+			log.Println("receive signal")
+		case <-time.After(d):
+			log.Println("receive timer")
+		}
+		// poll anno server no more than once every 30 seconds
+		if time.Now().Before(lastpoll.Add(30 * time.Second)) {
+			log.Println(lastpoll.Add(30*time.Second), "sleeploop")
+			d = 15 * time.Second
+			goto sleeploop
+		}
+
+		lastpoll = time.Now()
+		log.Println("polling Annotation Store")
+		// check the status of all our RAPs.
+		raps, err := AnnotationStore.RAPStatus()
+		if err != nil {
+			log.Println(err)
+			d = 1 * time.Minute
+			continue
+		}
+		UUIDs, err := Datasource.SearchItemUUID("", "", "")
+		if err != nil {
+			log.Println(err)
+			d = 1 * time.Minute
+			continue
+		}
+
+		notComplete := 0
+	big_loop:
+		for _, record := range UUIDs {
+			if record.Status == "a" {
+				// complete. skip it for now
+				continue
+			}
+			// is there an entry for this UUID in that status update?
+			for i := range raps {
+				if raps[i].UUID != record.UUID {
+					continue
+				}
+
+				rap := raps[i]
+				// also verify the ID...?
+				if rap.Status.Code != "a" {
+					notComplete++
+				}
+				if rap.Status.Code == record.Status {
+					break // nothing to update
+				}
+				// update our record to the new status
+				record.Status = rap.Status.Code
+				err = Datasource.UpdateUUID(record)
+				if err != nil {
+					log.Println(err)
+					d = 1 * time.Minute
+					continue big_loop
+				}
+				break
+			}
+		}
+
+		// if everything is processed, then go to a deep sleep
+		if notComplete == 0 {
+			d = defaultTimeout
+		}
+	}
 }
 
 type searchresults struct {

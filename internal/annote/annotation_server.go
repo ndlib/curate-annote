@@ -101,7 +101,7 @@ func (as *AnnoStore) UploadItem(item CurateItem, uploader *User) (string, error)
 	}
 	rap := SubmitRAP{
 		ID:            item.PID,
-		PID:           item.PID,
+		PID:           item.FirstField("dc:identifier", "dc:identifier#doi"),
 		Action:        "create",
 		RepositoryURL: as.OurURL + "/show/" + item.PID,
 		Title:         item.FirstField("dc:title"),
@@ -166,7 +166,6 @@ func (as *AnnoStore) sendRAP(rap *SubmitRAP) (rapResponse, error) {
 	if err != nil {
 		return result, err
 	}
-	// put "bot" in the user agent so it won't be counted in the curate metrics
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{
 		Name:  "s",
@@ -192,4 +191,52 @@ func (as *AnnoStore) sendRAP(rap *SubmitRAP) (rapResponse, error) {
 	err = decoder.Decode(&result)
 
 	return result, err
+}
+
+type RAPs struct {
+	ID     string
+	UUID   string `json:"uuid"`
+	PID    string `json:"pid"`
+	Status struct {
+		Code        string `json:"code"`
+		Description string `json:"desc"`
+	} `json:"status"`
+}
+
+func (as *AnnoStore) RAPStatus() ([]RAPs, error) {
+	var result []RAPs
+
+	url := as.Host + "/api/1/rap"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return result, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{
+		Name:  "s",
+		Value: as.UsernamePassword,
+	})
+
+	if TimeoutClient == nil {
+		TimeoutClient = &http.Client{
+			Timeout: 60 * time.Minute,
+		}
+	}
+
+	resp, err := TimeoutClient.Do(req)
+	if err != nil {
+		return result, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		log.Println("GET", url, "returned", resp.Status)
+	}
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&result)
+
+	return result, err
+}
+
+func (as *AnnoStore) ViewerURL(uuid string) string {
+	return as.Host + "/mirador/uuid/" + uuid
 }

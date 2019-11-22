@@ -28,6 +28,7 @@ var (
 )
 
 func main() {
+	log.Println("==========")
 	config := Config{
 		Mysql:          "",
 		Fedora:         os.Getenv("FEDORA_PATH"),

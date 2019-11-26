@@ -122,6 +122,10 @@ func sub0(limit int, values ...int) int {
 	return result
 }
 
+func join(ss []string, c string) string {
+	return strings.Join(ss, c)
+}
+
 // LoadTemplates will load and compile our templates into memory
 func LoadTemplates(path string) error {
 	t := template.New("")
@@ -138,6 +142,7 @@ func LoadTemplates(path string) error {
 		"ConfigValue":       configValue,
 		"add":               add0,
 		"sub":               sub0,
+		"Join":              join,
 	})
 	t, err := t.ParseGlob(filepath.Join(path, "*"))
 	Templates = t
@@ -459,12 +464,70 @@ func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	offset := numperpage * page
 
-	items, err := Datasource.FindAllRange(offset, numperpage)
+	results, err := Solr.SendQuery(SolrQuery{
+		Query: query,
+		Start: offset,
+		Rows:  numperpage,
+		QueryFields: []string{
+			"desc_metadata__title_tesim",
+			"desc_metadata__name_tesim",
+			"noid_tsi",
+			"file_format_tesim",
+			"desc_metadata__contributor_tesim",
+			"desc_metadata__abstract_tesim",
+			"desc_metadata__description_tesim",
+			"desc_metadata__creator_tesim",
+			"desc_metadata__author_tesim",
+			"admin_unit_tesim",
+			"desc_metadata__publisher_tesim",
+			"desc_metadata__language_tesim",
+			"desc_metadata__collection_name_tesim",
+			"desc_metadata__contributor_institution_tesim",
+			"desc_metadata__subject_tesim",
+			"desc_metadata__identifier_sim",
+			"desc_metadata__urn_tesim",
+			"degree_name_tesim",
+			"degree_disciplines_tesim",
+			"contributors_tesim",
+			"degree_department_acronyms_tesim",
+			"desc_metadata__date_created_tesim",
+			"desc_metadata__source_tesim",
+			"desc_metadata__alephIdentifier_tesim",
+			"desc_metadata__patent_number_tesim",
+		},
+		FieldList: []string{
+			"id",
+			"desc_metadata__title_tesim",
+			"active_fedora_model_ssi",
+			"desc_metadata__creator_tesim",
+			"desc_metadata__description_tesim",
+			"desc_metadata__abstract_tesim",
+			"desc_metadata__date_created_tesim",
+			"admin_unit_tesim",
+			"representative_tesim",
+		},
+		Sort: []string{
+			"score desc",
+			"desc_metadata__date_uploaded_dtsi desc",
+		},
+		FilterQuery: []string{
+			"read_access_group_ssim:public", // only public things in prototype
+			"-active_fedora_model_ssi:Person",
+			"-active_fedora_model_ssi:FileAsset",
+			"-active_fedora_model_ssi:GenericFile",
+			"-active_fedora_model_ssi:Profile",
+			"-active_fedora_model_ssi:ProfileSection",
+			"-active_fedora_model_ssi:LinkedResource",
+			"-active_fedora_model_ssi:Hydramata_Group",
+		},
+	})
+	log.Printf("solr %q", results)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Fprintln(w, err)
 		return
 	}
+	items := solrToCurateItem(results.Response.Docs)
 
 	output := searchresults{
 		Title:      "Search",
@@ -477,6 +540,44 @@ func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	DoTemplate(w, "search", output)
+}
+
+var (
+	solrXlat = map[string]string{
+		"desc_metadata__title_tesim":        "dc:title",
+		"representative_tesim":              "representative",
+		"active_fedora_model_ssi":           "af-model",
+		"desc_metadata__creator_tesim":      "dc:creator",
+		"desc_metadata__description_tesim":  "dc:description",
+		"desc_metadata__abstract_tesim":     "dc:abstract",
+		"desc_metadata__date_created_tesim": "dc:created",
+		"admin_unit_tesim":                  "dc:creator#administrative_unit",
+	}
+)
+
+func solrToCurateItem(docs []map[string]StringOrList) []CurateItem {
+	var out []CurateItem
+	for _, doc := range docs {
+		item := CurateItem{}
+		for k, v := range doc {
+			vv := []string(v)
+			if k == "id" {
+				item.PID = vv[0]
+				continue
+			}
+			if kk, ok := solrXlat[k]; ok {
+				k = kk
+			}
+			for i := range vv {
+				item.Properties = append(item.Properties, Pair{
+					Predicate: k,
+					Object:    vv[i],
+				})
+			}
+		}
+		out = append(out, item)
+	}
+	return out
 }
 
 func parseIntDefault(s string, v int) int {

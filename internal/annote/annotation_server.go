@@ -214,7 +214,7 @@ func (as *AnnoStore) sendRAP(rap *SubmitRAP) (rapResponse, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		log.Println("GET", url, "returned", resp.Status)
+		log.Println("POST", url, "returned", resp.Status)
 	}
 	// read the response...?
 	decoder := json.NewDecoder(resp.Body)

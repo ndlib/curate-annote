@@ -21,6 +21,7 @@ type Config struct {
 	AnnotationCredentials string
 	ImageViewerHost       string
 	Hostname              string
+	SolrHost              string
 	UploadPath            string
 	ElasticSearchURL      string
 }
@@ -74,6 +75,8 @@ func main() {
 		ImageViewerHost:  config.ImageViewerHost,
 		OurURL:           config.Hostname,
 	}
+
+	annote.Solr = &annote.SolrInfo{Host: config.SolrHost}
 
 	if config.TemplatePath != "" {
 		err := annote.LoadTemplates(config.TemplatePath)

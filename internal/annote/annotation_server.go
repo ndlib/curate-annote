@@ -56,6 +56,7 @@ type ItemUUID struct {
 type AnnoStore struct {
 	Host             string
 	UsernamePassword string
+	ImageViewerHost  string
 	OurURL           string
 }
 
@@ -238,5 +239,5 @@ func (as *AnnoStore) RAPStatus() ([]RAPs, error) {
 }
 
 func (as *AnnoStore) ViewerURL(uuid string) string {
-	return as.Host + "/mirador/uuid/" + uuid
+	return as.ImageViewerHost + "/mirador/uuid/" + uuid
 }

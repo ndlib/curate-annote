@@ -19,6 +19,7 @@ type Config struct {
 	CurateURL             string
 	AnnotationStore       string
 	AnnotationCredentials string
+	ImageViewerHost       string
 	Hostname              string
 }
 
@@ -66,6 +67,7 @@ func main() {
 	annote.AnnotationStore = &annote.AnnoStore{
 		Host:             config.AnnotationStore,
 		UsernamePassword: config.AnnotationCredentials,
+		ImageViewerHost:  config.ImageViewerHost,
 		OurURL:           config.Hostname,
 	}
 

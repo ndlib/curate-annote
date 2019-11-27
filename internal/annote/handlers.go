@@ -380,12 +380,14 @@ big_loop:
 			continue
 		}
 		// is there an entry for this UUID in that status update?
+		log.Println("searching for", record)
 		for i := range raps {
 			if raps[i].UUID != record.UUID {
 				continue
 			}
 
 			rap := raps[i]
+			log.Println("found", rap)
 			// also verify the ID...?
 			if rap.Status.Code != "a" {
 				notComplete++

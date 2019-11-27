@@ -490,6 +490,7 @@ func ShowAnnotateStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 	output.Title = "Annotation Upload Status Page"
 	output.User = user
 	output.Records = ids
+	output.Query = userq
 
 	DoTemplate(w, "anno-status", output)
 }

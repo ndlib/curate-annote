@@ -21,6 +21,29 @@
       </div>
     </div>
     <div class="row">
+      <div class="span4 offset8">
+        <form class="form-inline" action="/anno" method="get">
+          <fieldset>
+            <label class="radio inline" for="only_current">Only Mine
+              <input type="radio"
+                     id="only_current"
+                     name="user"
+                     value=""
+                     {{ if ne .Query "" }}checked{{ end }}>
+            </label>
+            <label class="radio inline" for="all">All users
+              <input type="radio"
+                     id="all"
+                     name="user"
+                     value="all"
+                     {{ if eq .Query "" }}checked{{ end }}>
+            </label>
+            <button class="btn inline" type="submit">Update Page</button>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+    <div class="row">
       <div class="span12">
         <table class="table table-striped">
           <thead>

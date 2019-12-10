@@ -13,8 +13,22 @@
           <a class="btn btn-default" href="#">
             <i class="icon icon-pencil"></i> Edit </a>
           <a class="btn btn-primary" href="#">Reindex this Item</a>
-          <a class="btn btn-default" href="/show/{{ .PID }}/annotate">
-            <i class="icon icon-edit"></i> Annotate This</a>
+          <div class="btn-group anno-menu">
+            <a class="btn btn-default dropdown-toggle" data-toggle="dropdown" href="/show/{{ .PID }}/annotate">
+              <i class="icon icon-edit"></i> Annotations <span class="caret"></span></a>
+            <ul class="dropdown-menu quick-create">
+              {{ $PID := .PID }}
+              {{ with $.AnnotationInfo.Primary }}
+                <li><a class="contextual-quick-classify" href="/show/{{ $PID}}/annotate" role="menuitem">Annotate my copy {{ if gt .Count 0 }}({{ .Count }} Annotations){{ end }}</a></li>
+              {{ end }}
+              {{ with $.AnnotationInfo.Others }}
+                <li class="divider"></li>
+                {{ range . }}
+                  <li><a class="contextual-quick-classify" href="/show/{{ $PID}}/annotate?copy={{ .Depositor }}" role="menuitem">View {{ .Depositor }}'s copy {{ if gt .Count 0}}({{ .Count }} Annotations){{ end }}</a></li>
+                {{ end }}
+              {{ end }}
+            </ul>
+          </div>
         </div>
       </div>
     </div>

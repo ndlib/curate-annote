@@ -141,6 +141,35 @@ func (as *AnnoStore) UploadItem(item CurateItem, uploader *User) (string, error)
 	return "", err
 }
 
+func (as *AnnoStore) getJSON(url string, result interface{}) error {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{
+		Name:  "s",
+		Value: as.UsernamePassword,
+	})
+
+	if TimeoutClient == nil {
+		TimeoutClient = &http.Client{
+			Timeout: 60 * time.Minute,
+		}
+	}
+
+	resp, err := TimeoutClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		log.Println("GET", url, "returned", resp.Status)
+	}
+	decoder := json.NewDecoder(resp.Body)
+	return decoder.Decode(result)
+}
+
 type rapResponse struct {
 	Success bool       `json:"success"`
 	Error   string     `json:"error"`
@@ -208,36 +237,38 @@ func (as *AnnoStore) RAPStatus() ([]RAPs, error) {
 	var result []RAPs
 
 	url := as.Host + "/api/1/rap"
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return result, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.AddCookie(&http.Cookie{
-		Name:  "s",
-		Value: as.UsernamePassword,
-	})
-
-	if TimeoutClient == nil {
-		TimeoutClient = &http.Client{
-			Timeout: 60 * time.Minute,
-		}
-	}
-
-	resp, err := TimeoutClient.Do(req)
-	if err != nil {
-		return result, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		log.Println("GET", url, "returned", resp.Status)
-	}
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&result)
+	err := as.getJSON(url, &result)
 
 	return result, err
 }
 
 func (as *AnnoStore) ViewerURL(uuid string) string {
 	return as.ImageViewerHost + "/mirador/uuid/" + uuid
+}
+
+type QueryAnnotationList struct {
+	Error       string `json:"error"`
+	ID          string `json:"@id"`
+	Annotations []struct {
+		Type      string `json:"@type"`
+		ID        string `json:"@id"`
+		AnnoStore struct {
+			RA string `json:"researchActivity"`
+		} `json:"__annostore"`
+		Author struct {
+			ID   string `json:"@id"`
+			Name string `json:"name"`
+		} `json:"annotatedBy"`
+		Created    time.Time `json:"annotatedAt"`
+		Motivation []string  `json:"motivation"`
+	} `json:"resources"`
+}
+
+func (as *AnnoStore) AnnotationListByUUID(uuid string) (QueryAnnotationList, error) {
+	var result QueryAnnotationList
+
+	url := as.Host + "/api/1/al/" + uuid
+	err := as.getJSON(url, &result)
+
+	return result, err
 }

@@ -8,6 +8,9 @@
     <meta name="viewport" content="width=device-width">
 
     <link href="/static/application.css" media="screen, print" rel="stylesheet" />
+    <style type="text/css">
+      .anno-menu { text-align: left }
+    </style>
 
     <script src="/static/modernizr.js"></script>
     <script src="/static/application.js"></script>

@@ -14,9 +14,11 @@
         {{ range .Messages }}
         <p>{{ . }}</p>
         {{ end }}
-        <p>When this item is available, it can be found at
-          <a href="{{ .AnnoURL }}">{{ .AnnoURL }}</a>.
-        </p>
+        {{ with .AnnoURL }}
+          <p>When this item is available, it can be found at
+            <a href="{{ . }}">{{ . }}</a>.
+          </p>
+        {{ end }}
         <div class="page-actions">
           <a class="btn btn-default" href="/show/{{ .Item.PID }}">
             Return To Item</a>

@@ -24,7 +24,7 @@
       <div class="span4 offset8">
         <form class="form-inline" action="/anno" method="get">
           <fieldset>
-            <label class="radio inline" for="only_current">Only Mine
+            <label class="radio inline" for="only_current">Mine
               <input type="radio"
                      id="only_current"
                      name="user"
@@ -51,7 +51,7 @@
           </thead>
           <tbody>
             {{ range .Records }}
-            <tr><td>{{ .UUID }}</td>
+            <tr><td><a href="/show/{{ .Item }}/annotate?copy={{ .Username }}">{{ .UUID }}</a></td>
               <td><a href="/show/{{ .Item }}">{{ .Item }}</a></td>
               <td>{{ .Username }}</td>
               <td>{{ .Status }}</td>

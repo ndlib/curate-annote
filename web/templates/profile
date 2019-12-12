@@ -1,36 +1,55 @@
-{{ template "header" }}
+{{ template "header-fancy" . }}
 
-<h1>User Profile</h1>
+<div id="main" role="main" class="page-main container ">
+  <div class="row">
+    <div class="span12 main-header">
+      <h1>{{ .Title }}</h1>
+    </div>
+  </div>
 
-{{ with .User }}
-<table><thead>
-    <tr><th>Property</th><th>Value</th></tr>
-</thead><tbody>
-<tr><td>ID</td><td>{{ .ID }}</td></tr>
-<tr><td>Username</td><td>{{ .Username }}</td></tr>
-<tr><td>Created</td><td>{{ .Created }}</td></tr>
-<tr><td>ORCID</td><td>{{ .ORCID }}</td></tr>
-</table>
-{{ end }}
+  {{ with .User }}
+    <div class="row">
+      <div class="span12">
+        <table class="table table-striped">
+          <thead>
+            <tr><th>Property</th><th>Value</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ID</td><td>{{ .ID }}</td></tr>
+            <tr><td>Username</td><td>{{ .Username }}</td></tr>
+            <tr><td>Created</td><td>{{ .Created }}</td></tr>
+            <tr><td>ORCID</td><td>{{ or .ORCID "not set" }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {{ end }}
 
-<form action="/profile/edit">
-    <input type="submit" name="update" value="Update Record">
-</form>
-<form method="POST">
-    <input type="submit" name="newuser", value="Create New User">
-</form>
-<form method="POST">
-    <input type="submit" name="changepass", value="Change Password">
-</form>
+  <div class="row">
+    <div class="span12">
+      <a class="btn btn-default" href="/profile/edit">Edit Profile</a>
+      <form class="form-inline" method="POST">
+        <button type="submit" class="btn" name="changepass" value="1">Change Password</button>
+      </form>
+    </div>
+  </div>
 
-{{ with .Message }}
-<p>{{ . }}</p>
-{{ end }}
+  <div class="row">
+    <div class="span12">
+      <form class="form-inline" method="POST">
+        <input type="text" class="input" name="username" placeholder="New Username">
+        <button type="submit" class="btn" name="newuser" value="1">Create New User</button>
+      </form>
+    </div>
+  </div>
 
-{{ with .NewUser }}
-<p>New user <tt>{{ .Username }}</tt> created. <a href="/reset?r={{ .HashedPassword }}">Reset the password</a>.</p>
+  {{ with .Message }}
+    <p>{{ . }}</p>
+  {{ end }}
 
-<p>You can change the username after resetting the password.</p>
-{{ end }}
+  {{ with .NewUser }}
+    <p>New user <tt>{{ .Username }}</tt> created. Send them this <a href="/reset?r={{ .HashedPassword }}">Link to Reset the password</a>.</p>
+  {{ end }}
+</div>
 
-{{ template "footer" }}
+{{ template "footer-fancy" }}

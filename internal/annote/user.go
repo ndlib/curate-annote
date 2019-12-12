@@ -33,6 +33,9 @@ var (
 	ErrPasswordMismatch = errors.New("Password does not match")
 )
 
+// CheckPassword takes the given user name and password, compares it
+// against what is in the database and returns either nil, for a match,
+// the error ErrPasswordMismatch if the username/password don't match.
 func CheckPassword(username, pass string) error {
 	// have we cached this already?
 	pw, ok := pwcache.Get(username)
@@ -60,6 +63,8 @@ func CheckPassword(username, pass string) error {
 	return nil
 }
 
+// FindUser returns a user record for the given user name.
+// If there is no such user record in the database, nil is returned.
 func FindUser(username string) *User {
 	user, err := Datasource.FindUser(username)
 	if err != nil {
@@ -69,6 +74,8 @@ func FindUser(username string) *User {
 	return user
 }
 
+// FindUserByToken returns a user record given a password reset token.
+// If there is no such token, nil is returned.
 func FindUserByToken(token string) *User {
 	user, err := Datasource.FindUserByToken(token)
 	if err != nil {
@@ -78,6 +85,8 @@ func FindUserByToken(token string) *User {
 	return user
 }
 
+// SaveUser saves the given user record to the database, possibly updating an
+// existing record. User records are identified by their ID number.
 func SaveUser(user *User) error {
 	return Datasource.SaveUser(user)
 }
@@ -122,15 +131,22 @@ func ClearUserFromCache(username string) {
 	pwcache.Delete(username)
 }
 
-func CreateNewUser() (*User, error) {
-	// first find an unused username
-	// this has a race condition
-	var username string
-	for i := 1; ; i++ {
-		username = fmt.Sprintf("tempuser-%04d", i)
+func CreateNewUser(username string) (*User, error) {
+	if username != "" {
+		// verify username is not already used
 		u := FindUser(username)
-		if u == nil {
-			break
+		if u != nil {
+			return nil, errors.New("Username already exists")
+		}
+	} else {
+		// first find an unused username
+		// this has a race condition
+		for i := 1; ; i++ {
+			username = fmt.Sprintf("tempuser-%04d", i)
+			u := FindUser(username)
+			if u == nil {
+				break
+			}
 		}
 	}
 

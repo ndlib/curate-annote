@@ -46,6 +46,16 @@ func (c *CurateItem) FirstField(targets ...string) string {
 	return ""
 }
 
+func (c *CurateItem) RemoveAll(target string) {
+	for i := 0; i < len(c.Properties); {
+		if c.Properties[i].Predicate == target {
+			c.Properties = append(c.Properties[:i], c.Properties[i+1:]...)
+		} else {
+			i++
+		}
+	}
+}
+
 type PredicatePair struct {
 	XMLName xml.Name
 	V       string `xml:",any,attr"`

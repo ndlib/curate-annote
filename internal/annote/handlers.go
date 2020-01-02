@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -223,6 +224,78 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	})
 }
 
+type objectnew struct {
+	Title string
+}
+
+func ObjectNew(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	DoTemplate(w, "record-new", objectnew{Title: "Upload New Item"})
+}
+
+func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	username, _, _ := r.BasicAuth()
+
+	err := r.ParseMultipartForm(100 * (1 << 20)) // 100 MiB
+	if err != nil {
+	}
+
+	now := time.Now()
+	today := now.Format("2006-01-02")
+	todayminute := now.Format(time.RFC3339)
+
+	workid := NewIdentifier()
+	newitem := CurateItem{PID: "und:" + workid}
+	for key, value := range r.MultipartForm.Value {
+		for _, v := range value {
+			newitem.Add(key, v)
+		}
+	}
+	newitem.Add("fedora-create", todayminute)
+	newitem.Add("fedora-modify", todayminute)
+	Datasource.IndexItem(newitem)
+	for _, attached := range r.MultipartForm.File["files"] {
+		// make a new item for each...
+		fileid := NewIdentifier()
+
+		contents, err := attached.Open()
+		if err != nil {
+			log.Println(err)
+		}
+
+		writer, err := FileStore.Create(fileid + "-content")
+		io.Copy(writer, contents)
+
+		writer.Close()
+		contents.Close()
+
+		fileitem := CurateItem{PID: "und:" + fileid}
+		fileitem.Add("af-model", "GenericFile")
+		fileitem.Add("isPartOf", "und:"+workid)
+		fileitem.Add("depositor", username)
+		fileitem.Add("owner", username)
+		fileitem.Add("read-group", "public")
+		fileitem.Add("edit-person", username)
+		fileitem.Add("dc:dateSubmitted", today)
+		fileitem.Add("dc:title", attached.Filename)
+		fileitem.Add("filename", attached.Filename)
+		//fileitem.Add("checksum-md5")
+		fileitem.Add("mime-type", attached.Header.Get("Content-Type"))
+		fileitem.Add("file-location", fileid+"-content")
+		fileitem.Add("thumbnail", fileid+"-content")
+		fileitem.Add("fedora-create", todayminute)
+		fileitem.Add("fedora-modify", todayminute)
+		Datasource.IndexItem(fileitem)
+
+		// &{"Screen Shot 2019-12-10 at 4.53.00 PM.png" map["Content-Disposition":["form-data; name=\"files\"; filename=\"Screen Shot 2019-12-10 at 4.53.00 PM.png\""] "Content-Type":["image/png"]]
+	}
+
+	target := "/show/und:" + workid
+	http.Redirect(w, r, target, 302)
+}
+
+func ObjectEdit(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+}
+
 type annotateTemplate struct {
 	Messages []string
 	Item     CurateItem
@@ -407,9 +480,14 @@ func ObjectDownload(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	// from curate's public interface. So we ultimately
 	// only have access to the public things.
 
-	// is file cached?
-	path := FindFileInCache(pid)
+	// is file uploaded locally?
+	path := FileStore.Find(pid + "-content")
 	if path == "" {
+		// is file cached?
+		path = FindFileInCache(pid)
+	}
+	if path == "" {
+		// not cached and not uploaded, see if on remote curate
 		err := DownloadFileToCache(pid, fmt.Sprintf("%s/downloads/%s", CurateURL, pid))
 		if err != nil {
 			w.WriteHeader(500)

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-  <title>{{ .Title }} // CurateND</title>
+  <title>{{ decodeUnicode .Title }} // CurateND</title>
 
     <meta name="viewport" content="width=device-width">
 
@@ -65,17 +65,11 @@
             <nav class="site-actions" role="menu">
               <a class="btn btn-primary about" href="/about" role="menuitem">About</a>
               <div class="btn-group add-content">
-                <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="/deposit" id="add-content">
+                <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" id="add-content">
                   Deposit<span class="caret"></span>
                 </a>
                 <ul class="dropdown-menu quick-create">
-                  <li><a class="contextual-quick-classify new-article" href="/concern/articles/new" role="menuitem">New Article</a></li>
-                  <li><a class="contextual-quick-classify new-dataset" href="/concern/datasets/new" role="menuitem">New Dataset</a></li>
-                  <li><a class="contextual-quick-classify new-document" href="/concern/documents/new" role="menuitem">New Document</a></li>
-                  <li><a class="contextual-quick-classify new-image" href="/concern/images/new" role="menuitem">New Image</a></li>
-                  <li><a class="link-to-full-list" href="/deposit" role="menuitem">More Options</a></li>
-                  <li class="divider"></li>
-                  <li><a href="/admin/ingest_osf_archives/new">Import OSF archive</a></li>
+                  <li><a class="contextual-quick-classify new-article" href="/new" role="menuitem">Deposit New Item</a></li>
                 </ul>
               </div>
 

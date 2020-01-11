@@ -16,7 +16,7 @@
         <div class="control-group">
           <label class="control-label" for="depositor">Depositor</label>
           <div class="controls">
-            <input type="text" name="depositor" value="dbrower" readonly>
+            <input type="text" name="depositor" value="{{ .User.Username }}" readonly>
           </div>
         </div>
 

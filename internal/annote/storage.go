@@ -27,6 +27,7 @@ func (s *Store) Open(key string) (io.ReadCloser, error) {
 	return os.Open(k)
 }
 
+// Find returns an absolute file path to the given item.
 func (s *Store) Find(key string) string {
 	path, _ := filepath.Abs(s.resolve(key))
 	_, err := os.Stat(path)
@@ -39,4 +40,14 @@ func (s *Store) Find(key string) string {
 func (s *Store) resolve(key string) string {
 	k := fmt.Sprintf("%s-%04d", key, 0)
 	return filepath.Join(s.Root, k)
+}
+
+func (s *Store) MakeThumbnailPDF(key string) error {
+	t := Thumbnail{Source: s}
+	return t.DoPDF(key)
+}
+
+func (s *Store) MakeThumbnailImage(key string) error {
+	t := Thumbnail{Source: s}
+	return t.DoImage(key)
 }

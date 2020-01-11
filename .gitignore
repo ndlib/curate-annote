@@ -4,3 +4,4 @@ download_cache/*
 /annote-server
 /cmd/annote-server/annote-server
 **/config
+uploads/*

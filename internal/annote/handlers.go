@@ -226,10 +226,14 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 type objectnew struct {
 	Title string
+	User  *User
 }
 
 func ObjectNew(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	DoTemplate(w, "record-new", objectnew{Title: "Upload New Item"})
+	username, _, _ := r.BasicAuth()
+	user := FindUser(username)
+
+	DoTemplate(w, "record-new", objectnew{Title: "Deposit New Item", User: user})
 }
 
 func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -237,6 +241,7 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 
 	err := r.ParseMultipartForm(100 * (1 << 20)) // 100 MiB
 	if err != nil {
+		// ???
 	}
 
 	now := time.Now()
@@ -252,19 +257,32 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	}
 	newitem.Add("fedora-create", todayminute)
 	newitem.Add("fedora-modify", todayminute)
-	Datasource.IndexItem(newitem)
+
+	// now save all the file attachments
+	isfirstfile := true
 	for _, attached := range r.MultipartForm.File["files"] {
 		// make a new item for each...
 		fileid := NewIdentifier()
+
+		// make first item the representative of the work
+		if isfirstfile {
+			newitem.Add("representative", "und:"+fileid)
+			isfirstfile = false
+		}
 
 		contents, err := attached.Open()
 		if err != nil {
 			log.Println(err)
 		}
 
-		writer, err := FileStore.Create(fileid + "-content")
-		io.Copy(writer, contents)
+		writer, err := FileStore.Create(fileid)
+		// calculate md5 sum as we copy it?
+		_, err = io.Copy(writer, contents)
+		if err != nil {
+			// ???
+		}
 
+		// not using defer since we are in a loop
 		writer.Close()
 		contents.Close()
 
@@ -280,14 +298,26 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		fileitem.Add("filename", attached.Filename)
 		//fileitem.Add("checksum-md5")
 		fileitem.Add("mime-type", attached.Header.Get("Content-Type"))
-		fileitem.Add("file-location", fileid+"-content")
-		fileitem.Add("thumbnail", fileid+"-content")
+		fileitem.Add("file-location", fileid)
+		fileitem.Add("thumbnail", fileid)
 		fileitem.Add("fedora-create", todayminute)
 		fileitem.Add("fedora-modify", todayminute)
 		Datasource.IndexItem(fileitem)
 
-		// &{"Screen Shot 2019-12-10 at 4.53.00 PM.png" map["Content-Disposition":["form-data; name=\"files\"; filename=\"Screen Shot 2019-12-10 at 4.53.00 PM.png\""] "Content-Type":["image/png"]]
+		// make thumbnail in the background
+		go func() {
+			switch fileitem.FirstField("mime-type") {
+			case "application/pdf":
+				FileStore.MakeThumbnailPDF(fileid)
+			default:
+				FileStore.MakeThumbnailImage(fileid)
+			}
+		}()
 	}
+
+	// save/index the item record last in case we added any
+	// more fields while copying files, e.g. the representative
+	Datasource.IndexItem(newitem)
 
 	target := "/show/und:" + workid
 	http.Redirect(w, r, target, 302)
@@ -476,38 +506,44 @@ func ObjectDownload(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	pid := ps.ByName("id")
 	pid = strings.TrimPrefix(pid, "und:")
 
-	// don't need to do any auth here since we get files
-	// from curate's public interface. So we ultimately
-	// only have access to the public things.
-
-	// is file uploaded locally?
-	path := FileStore.Find(pid + "-content")
-	if path == "" {
-		// is file cached?
-		path = FindFileInCache(pid)
-	}
-	if path == "" {
-		// not cached and not uploaded, see if on remote curate
-		err := DownloadFileToCache(pid, fmt.Sprintf("%s/downloads/%s", CurateURL, pid))
-		if err != nil {
-			w.WriteHeader(500)
-			fmt.Fprintln(w, err)
-			return
-		}
-		path = FindFileInCache(pid)
-	}
-	http.ServeFile(w, r, path)
+	download(w, r, pid, false)
 }
 
 func ObjectDownloadThumbnail(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	pid := ps.ByName("id")
 	pid = strings.TrimPrefix(pid, "und:")
 
-	// is file cached?
-	basename := pid + "-thumbnail"
-	path := FindFileInCache(basename)
+	download(w, r, pid, true)
+}
+
+// download will look for content files and thumbnail files in our local storage, our local
+// cache of curate content, and finally try to copy the files from a backing curate server.
+// When it finds content, it will return it via the ResponseWriter.
+func download(w http.ResponseWriter, r *http.Request, pid string, isthumbnail bool) {
+	basename := pid
+	if isthumbnail {
+		basename = pid + "-thumbnail"
+	}
+
+	// don't need to do any auth here since we get files
+	// from curate's public interface. So we ultimately
+	// only have access to the public things.
+
+	// is file uploaded locally?
+	path := FileStore.Find(basename)
 	if path == "" {
-		err := DownloadFileToCache(basename, fmt.Sprintf("%s/downloads/%s/thumbnail", CurateURL, pid))
+		// is file cached?
+		path = FindFileInCache(basename)
+	}
+	if path == "" {
+		// not cached and not uploaded, see if on remote curate
+		var remotepath string
+		if isthumbnail {
+			remotepath = fmt.Sprintf("%s/downloads/%s/thumbnail", CurateURL, pid)
+		} else {
+			remotepath = fmt.Sprintf("%s/downloads/%s", CurateURL, pid)
+		}
+		err := DownloadFileToCache(basename, remotepath)
 		if err != nil {
 			w.WriteHeader(500)
 			fmt.Fprintln(w, err)

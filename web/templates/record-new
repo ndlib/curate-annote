@@ -1,0 +1,94 @@
+{{ template "header-fancy" . }}
+
+<div id="main" role="main" class="page-main container ">
+  <div class="row">
+    <div class="span12 main-header-with-actions">
+      <div class="main-header">
+        <h1>{{ .Title }}</h1>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="span12">
+      <p></p>
+      <form class="form-horizontal" method="POST" enctype="multipart/form-data">
+
+        <div class="control-group">
+          <label class="control-label" for="depositor">Depositor</label>
+          <div class="controls">
+            <input type="text" name="depositor" value="{{ .User.Username }}" readonly>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="dc:title">Title</label>
+          <div class="controls">
+            <input type="text" class="span6" name="dc:title">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="type">Work Type</label>
+          <div class="controls">
+            <select name="af-model">
+              <option value="article">Article</option>
+              <option value="audio">Audio</option>
+              <option value="book">Book</option>
+              <option value="bookchapter">Book Chapter</option>
+              <option value="brochure">Brochure</option>
+              <option value="conferencepaper">Conference Paper</option>
+              <option value="dataset">Dataset</option>
+              <option value="document">Document</option>
+              <option value="image">Image</option>
+              <option value="letter">Letter</option>
+              <option value="manuscript">Manuscript</option>
+              <option value="newsletter">Newsletter</option>
+              <option value="pamphlet">Pamphlet</option>
+              <option value="patent">Patent</option>
+              <option value="presentation">Presentation</option>
+              <option value="report">Report</option>
+              <option value="software">Software</option>
+              <option value="video">Video</option>
+              <option value="whitepaper">White Paper</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="dc:description">Description</label>
+          <div class="controls">
+            <textarea class="span6" name="dc:description" rows="7"></textarea>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="dc:creator">Author/Creator</label>
+          <div class="controls">
+            <input type="text" class="span6" name="dc:creator">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="dc:created">Date Created</label>
+          <div class="controls">
+            <input type="text" class="span6" name="dc:created">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="files">Attached Files</label>
+          <div class="controls">
+            <input type="file" class="span6" name="files" multiple>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" name="create">Save</button>
+          <button type="button" class="btn" name="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{{ template "footer-fancy" . }}

@@ -21,6 +21,7 @@ type Config struct {
 	AnnotationCredentials string
 	ImageViewerHost       string
 	Hostname              string
+	UploadPath            string
 }
 
 var (
@@ -63,6 +64,7 @@ func main() {
 		annote.Datasource = db
 	}
 	annote.CurateURL = config.CurateURL
+	annote.FileStore.Root = config.UploadPath
 
 	annote.AnnotationStore = &annote.AnnoStore{
 		Host:             config.AnnotationStore,

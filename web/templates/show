@@ -6,7 +6,7 @@
     <div class="row">
       <div class="span12 main-header-with-actions">
         <div class="main-header">
-          <h1>{{ $title }}</h1>
+          <h1>{{ decodeUnicode $title }}</h1>
           <span class="human-readable-type">{{ FirstField . "af-model" }}</span>
         </div>
         <div class="page-actions">
@@ -36,7 +36,8 @@
       <div class="span12">
         <div class="row">
           <div class="work-representation span3">
-            {{ with FirstField . "representative" }}
+            {{/* using PID is a hack for genericfile show pages */}}
+            {{ with or (FirstField . "representative") .PID }}
             <a href="/downloads/{{ . }}" target = "_blank">
               <img alt="Thumbnail" class="representative_image" src="/downloads/{{ . }}/thumbnail" />
             </a>

@@ -171,7 +171,6 @@ func (sq *MysqlDB) SetConfig(key string, value string) error {
 	return err
 }
 
-// AllPurls returns a list of every purl in the database.
 func (sq *MysqlDB) IndexItem(item CurateItem) error {
 	tx, err := sq.db.Begin()
 	if err != nil {
@@ -286,6 +285,7 @@ func (sq *MysqlDB) FindCollectionMembers(pid string) ([]CurateItem, error) {
 	return readCurateItems(rows)
 }
 
+// FindAllRange returns a list of every purl in the database.
 func (sq *MysqlDB) FindAllRange(offset, count int) ([]CurateItem, error) {
 	// The deployed database is mysql 5.7, and there is no support for WITH
 	// statements or using LIMIT in IN subqueries. So we use an interesting

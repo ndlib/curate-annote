@@ -22,6 +22,7 @@ type Config struct {
 	ImageViewerHost       string
 	Hostname              string
 	UploadPath            string
+	ElasticSearchURL      string
 }
 
 var (
@@ -65,6 +66,7 @@ func main() {
 	}
 	annote.CurateURL = config.CurateURL
 	annote.FileStore.Root = config.UploadPath
+	annote.InitES(config.ElasticSearchURL)
 
 	annote.AnnotationStore = &annote.AnnoStore{
 		Host:             config.AnnotationStore,

@@ -20,6 +20,7 @@ func AddRoutes() http.Handler {
 		{"GET", "/obj", NotImplemented, true}, // legacy
 		{"GET", "/show/:id", ObjectShow, true},
 		{"GET", "/show/:id/annotate", ObjectAnnotate, true},
+		{"POST", "/show/:id/index", ObjectIndex, true},
 		{"GET", "/new", ObjectNew, true},
 		{"POST", "/new", ObjectNewPost, true},
 		{"GET", "/show/:id/edit", ObjectEdit, true},
@@ -27,6 +28,7 @@ func AddRoutes() http.Handler {
 		{"GET", "/downloads/:id/thumbnail", ObjectDownloadThumbnail, true},
 		{"GET", "/search", SearchPage, true},
 		{"GET", "/anno", ShowAnnotateStatus, true},
+		{"POST", "/index", IndexEverything, true},
 		{"GET", "/reset", ResetShow, false},
 		{"POST", "/reset", ResetUpdate, false},
 		{"GET", "/profile", ProfileShow, true},

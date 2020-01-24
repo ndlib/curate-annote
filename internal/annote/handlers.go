@@ -224,6 +224,25 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	})
 }
 
+func ObjectIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	pid := ps.ByName("id")
+	if !strings.HasPrefix(pid, "und:") {
+		pid = "und:" + pid
+	}
+	item, err := Datasource.FindItem(pid)
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Fprintln(w, err)
+		return
+	}
+	IndexRecord(item)
+	http.Redirect(w, r, "/items/"+pid, 302)
+}
+
+func IndexEverything(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	IndexBatch(&AllItems{})
+}
+
 type objectnew struct {
 	Title string
 	User  *User
@@ -303,6 +322,7 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		fileitem.Add("fedora-create", todayminute)
 		fileitem.Add("fedora-modify", todayminute)
 		Datasource.IndexItem(fileitem)
+		IndexRecord(fileitem)
 
 		// make thumbnail in the background
 		go func() {
@@ -318,6 +338,7 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	// save/index the item record last in case we added any
 	// more fields while copying files, e.g. the representative
 	Datasource.IndexItem(newitem)
+	IndexRecord(newitem)
 
 	target := "/show/und:" + workid
 	http.Redirect(w, r, target, 302)

@@ -313,6 +313,17 @@ func (sq *MysqlDB) FindAllRange(offset, count int) ([]CurateItem, error) {
 	return readCurateItems(rows)
 }
 
+// support the Searcher interface
+
+func (sq *MysqlDB) Search(q SearchQuery) (SearchResults, error) {
+	items, err := sq.FindAllRange(q.Start, q.NumRows)
+	return SearchResults{Items: items}, err
+}
+func (sq *MysqlDB) IndexRecord(item CurateItem) {}
+func (sq *MysqlDB) IndexBatch(source Batcher)   {}
+
+// user things
+
 func (sq *MysqlDB) FindUser(username string) (*User, error) {
 	var u User
 	row := sq.db.QueryRow(`SELECT id, username, hashedpassword, created, orcid FROM users WHERE username = ? LIMIT 1`, username)

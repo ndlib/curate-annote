@@ -13,13 +13,12 @@ import (
 	"github.com/elastic/go-elasticsearch/esapi"
 )
 
-var (
-	ESClient *elasticsearch.Client
-)
+type ElasticSearcher struct {
+	Client *elasticsearch.Client
+}
 
-func InitES(address string) {
-	var err error
-	ESClient, err = elasticsearch.NewClient(elasticsearch.Config{
+func NewElasticSearch(address string) Searcher {
+	client, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{address},
 		Transport: &http.Transport{
 			ResponseHeaderTimeout: 10 * time.Second,
@@ -28,9 +27,14 @@ func InitES(address string) {
 	if err != nil {
 		log.Println(err)
 	}
+	return &ElasticSearcher{Client: client}
 }
 
-func IndexRecord(item CurateItem) {
+func (e *ElasticSearcher) Search(q SearchQuery) (SearchResults, error) {
+	return SearchResults{}, nil
+}
+
+func (e *ElasticSearcher) IndexRecord(item CurateItem) {
 	// Todo: reformat the item since the JSON form of a CurateItem datatype
 	// confuses elastic search.
 	// make it more like a json object.
@@ -49,7 +53,7 @@ func IndexRecord(item CurateItem) {
 		Body:       bytes.NewReader(b),
 	}
 
-	response, err := req.Do(context.Background(), ESClient)
+	response, err := req.Do(context.Background(), e.Client)
 	if err != nil {
 		log.Println("index:", item.PID, err)
 		return
@@ -68,7 +72,7 @@ type Batcher interface {
 
 // IndexBatch will index a lot of records. It is expected to be more
 // effecient than calling IndexRecord on each record.
-func IndexBatch(source Batcher) {
+func (e *ElasticSearcher) IndexBatch(source Batcher) {
 	// Index in batches of 1000 items at a time
 	source = &Grouper{Goal: 1000, Source: source}
 
@@ -103,7 +107,7 @@ func IndexBatch(source Batcher) {
 			Body:    buf,
 		}
 
-		response, err := req.Do(context.Background(), ESClient)
+		response, err := req.Do(context.Background(), e.Client)
 		if err != nil {
 			log.Println("batchindex:", err)
 			continue

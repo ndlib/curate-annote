@@ -65,7 +65,7 @@ func BackgroundHarvester() {
 				if err != nil {
 					log.Println(err)
 				}
-				IndexRecord(item)
+				SearchEngine.IndexRecord(item)
 			}
 		}()
 		err := HarvestCurateObjects(TargetFedora, lastHarvest, func(item CurateItem) error {

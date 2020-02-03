@@ -67,7 +67,6 @@ func main() {
 	}
 	annote.CurateURL = config.CurateURL
 	annote.FileStore.Root = config.UploadPath
-	annote.InitES(config.ElasticSearchURL)
 
 	annote.AnnotationStore = &annote.AnnoStore{
 		Host:             config.AnnotationStore,
@@ -76,7 +75,18 @@ func main() {
 		OurURL:           config.Hostname,
 	}
 
-	annote.Solr = &annote.SolrInfo{Host: config.SolrHost}
+	// Prefer ES over Solr as search engine since our solr implementation
+	// doesn't support indexing new records.
+	if config.ElasticSearchURL != "" {
+		log.Println("Using ElasticSearch", config.ElasticSearchURL)
+		annote.SearchEngine = annote.NewElasticSearch(config.ElasticSearchURL)
+	} else if config.SolrHost != "" {
+		log.Println("Using Solr", config.SolrHost)
+		annote.SearchEngine = &annote.SolrInfo{Host: config.SolrHost}
+	} else {
+		log.Println("Using Database for search engine")
+		annote.SearchEngine = annote.Datasource
+	}
 
 	if config.TemplatePath != "" {
 		err := annote.LoadTemplates(config.TemplatePath)

@@ -240,12 +240,12 @@ func ObjectIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fmt.Fprintln(w, err)
 		return
 	}
-	IndexRecord(item)
+	SearchEngine.IndexRecord(item)
 	http.Redirect(w, r, "/items/"+pid, 302)
 }
 
 func IndexEverything(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	IndexBatch(&AllItems{})
+	SearchEngine.IndexBatch(&AllItems{})
 }
 
 type objectnew struct {
@@ -327,7 +327,7 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		fileitem.Add("fedora-create", todayminute)
 		fileitem.Add("fedora-modify", todayminute)
 		Datasource.IndexItem(fileitem)
-		IndexRecord(fileitem)
+		SearchEngine.IndexRecord(fileitem)
 
 		// make thumbnail in the background
 		go func() {
@@ -343,7 +343,7 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	// save/index the item record last in case we added any
 	// more fields while copying files, e.g. the representative
 	Datasource.IndexItem(newitem)
-	IndexRecord(newitem)
+	SearchEngine.IndexRecord(newitem)
 
 	target := "/show/und:" + workid
 	http.Redirect(w, r, target, 302)
@@ -441,6 +441,25 @@ func StartBackgroundProcess() {
 	go backgroundRAPchecker(AnnoChan)
 }
 
+// A Searcher represents our interface to an external index service.
+type Searcher interface {
+	Search(q SearchQuery) (SearchResults, error)
+
+	IndexRecord(item CurateItem)
+
+	IndexBatch(source Batcher)
+}
+
+type SearchQuery struct {
+	Query   string
+	Start   int
+	NumRows int
+}
+
+type SearchResults struct {
+	Items []CurateItem
+}
+
 type searchresults struct {
 	Title      string
 	User       *User
@@ -450,6 +469,10 @@ type searchresults struct {
 	StartIndex int
 	ItemList   []CurateItem
 }
+
+var (
+	SearchEngine Searcher
+)
 
 func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	query := r.FormValue("q")
@@ -464,70 +487,16 @@ func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	offset := numperpage * page
 
-	results, err := Solr.SendQuery(SolrQuery{
-		Query: query,
-		Start: offset,
-		Rows:  numperpage,
-		QueryFields: []string{
-			"desc_metadata__title_tesim",
-			"desc_metadata__name_tesim",
-			"noid_tsi",
-			"file_format_tesim",
-			"desc_metadata__contributor_tesim",
-			"desc_metadata__abstract_tesim",
-			"desc_metadata__description_tesim",
-			"desc_metadata__creator_tesim",
-			"desc_metadata__author_tesim",
-			"admin_unit_tesim",
-			"desc_metadata__publisher_tesim",
-			"desc_metadata__language_tesim",
-			"desc_metadata__collection_name_tesim",
-			"desc_metadata__contributor_institution_tesim",
-			"desc_metadata__subject_tesim",
-			"desc_metadata__identifier_sim",
-			"desc_metadata__urn_tesim",
-			"degree_name_tesim",
-			"degree_disciplines_tesim",
-			"contributors_tesim",
-			"degree_department_acronyms_tesim",
-			"desc_metadata__date_created_tesim",
-			"desc_metadata__source_tesim",
-			"desc_metadata__alephIdentifier_tesim",
-			"desc_metadata__patent_number_tesim",
-		},
-		FieldList: []string{
-			"id",
-			"desc_metadata__title_tesim",
-			"active_fedora_model_ssi",
-			"desc_metadata__creator_tesim",
-			"desc_metadata__description_tesim",
-			"desc_metadata__abstract_tesim",
-			"desc_metadata__date_created_tesim",
-			"admin_unit_tesim",
-			"representative_tesim",
-		},
-		Sort: []string{
-			"score desc",
-			"desc_metadata__date_uploaded_dtsi desc",
-		},
-		FilterQuery: []string{
-			"read_access_group_ssim:public", // only public things in prototype
-			"-active_fedora_model_ssi:Person",
-			"-active_fedora_model_ssi:FileAsset",
-			"-active_fedora_model_ssi:GenericFile",
-			"-active_fedora_model_ssi:Profile",
-			"-active_fedora_model_ssi:ProfileSection",
-			"-active_fedora_model_ssi:LinkedResource",
-			"-active_fedora_model_ssi:Hydramata_Group",
-		},
+	results, err := SearchEngine.Search(SearchQuery{
+		Query:   query,
+		Start:   offset,
+		NumRows: numperpage,
 	})
-	log.Printf("solr %q", results)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Fprintln(w, err)
 		return
 	}
-	items := solrToCurateItem(results.Response.Docs)
 
 	output := searchresults{
 		Title:      "Search",
@@ -536,48 +505,10 @@ func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		Page:       page,
 		NumPerPage: numperpage,
 		StartIndex: offset + 1,
-		ItemList:   items,
+		ItemList:   results.Items,
 	}
 
 	DoTemplate(w, "search", output)
-}
-
-var (
-	solrXlat = map[string]string{
-		"desc_metadata__title_tesim":        "dc:title",
-		"representative_tesim":              "representative",
-		"active_fedora_model_ssi":           "af-model",
-		"desc_metadata__creator_tesim":      "dc:creator",
-		"desc_metadata__description_tesim":  "dc:description",
-		"desc_metadata__abstract_tesim":     "dc:abstract",
-		"desc_metadata__date_created_tesim": "dc:created",
-		"admin_unit_tesim":                  "dc:creator#administrative_unit",
-	}
-)
-
-func solrToCurateItem(docs []map[string]StringOrList) []CurateItem {
-	var out []CurateItem
-	for _, doc := range docs {
-		item := CurateItem{}
-		for k, v := range doc {
-			vv := []string(v)
-			if k == "id" {
-				item.PID = vv[0]
-				continue
-			}
-			if kk, ok := solrXlat[k]; ok {
-				k = kk
-			}
-			for i := range vv {
-				item.Properties = append(item.Properties, Pair{
-					Predicate: k,
-					Object:    vv[i],
-				})
-			}
-		}
-		out = append(out, item)
-	}
-	return out
 }
 
 func parseIntDefault(s string, v int) int {

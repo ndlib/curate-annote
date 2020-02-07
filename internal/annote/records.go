@@ -20,6 +20,11 @@ type Pair struct {
 	Object    string
 }
 
+// A CurateItem holds the metadata record for a single collection, item, or
+// file. It consists of our local identifier for the item (with the namespace
+// prefix, if any), and then a sequence of field-value pairs. The field names
+// can repeat. The ordering of the pairs is only important among those having
+// the same field name.
 type CurateItem struct {
 	PID        string
 	Properties []Pair
@@ -54,6 +59,21 @@ func (c *CurateItem) RemoveAll(target string) {
 			i++
 		}
 	}
+}
+
+// A CurateItemAlt is an alternative representation of a CurateItem. It
+// consolidates each property field name into a map entry, and arranges the
+// (possibly multiple) values as a list. The PID is stored under the map entry
+// "PID".
+type CurateItemAlt map[string][]string
+
+func (c *CurateItem) AsAlternate() CurateItemAlt {
+	result := make(map[string][]string)
+	result["PID"] = []string{c.PID}
+	for _, p := range c.Properties {
+		result[p.Predicate] = append(result[p.Predicate], p.Object)
+	}
+	return CurateItemAlt(result)
 }
 
 type PredicatePair struct {

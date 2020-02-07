@@ -21,7 +21,9 @@ type Config struct {
 	AnnotationCredentials string
 	ImageViewerHost       string
 	Hostname              string
+	SolrHost              string
 	UploadPath            string
+	ElasticSearchURL      string
 }
 
 var (
@@ -71,6 +73,19 @@ func main() {
 		UsernamePassword: config.AnnotationCredentials,
 		ImageViewerHost:  config.ImageViewerHost,
 		OurURL:           config.Hostname,
+	}
+
+	// Prefer ES over Solr as search engine since our solr implementation
+	// doesn't support indexing new records.
+	if config.ElasticSearchURL != "" {
+		log.Println("Using ElasticSearch", config.ElasticSearchURL)
+		annote.SearchEngine = annote.NewElasticSearch(config.ElasticSearchURL)
+	} else if config.SolrHost != "" {
+		log.Println("Using Solr", config.SolrHost)
+		annote.SearchEngine = &annote.SolrInfo{Host: config.SolrHost}
+	} else {
+		log.Println("Using Database for search engine")
+		annote.SearchEngine = annote.Datasource
 	}
 
 	if config.TemplatePath != "" {

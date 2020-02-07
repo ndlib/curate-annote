@@ -122,6 +122,10 @@ func sub0(limit int, values ...int) int {
 	return result
 }
 
+func join(ss []string, c string) string {
+	return strings.Join(ss, c)
+}
+
 // LoadTemplates will load and compile our templates into memory
 func LoadTemplates(path string) error {
 	t := template.New("")
@@ -138,6 +142,7 @@ func LoadTemplates(path string) error {
 		"ConfigValue":       configValue,
 		"add":               add0,
 		"sub":               sub0,
+		"Join":              join,
 	})
 	t, err := t.ParseGlob(filepath.Join(path, "*"))
 	Templates = t
@@ -224,6 +229,25 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	})
 }
 
+func ObjectIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	pid := ps.ByName("id")
+	if !strings.HasPrefix(pid, "und:") {
+		pid = "und:" + pid
+	}
+	item, err := Datasource.FindItem(pid)
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Fprintln(w, err)
+		return
+	}
+	SearchEngine.IndexRecord(item)
+	http.Redirect(w, r, "/items/"+pid, 302)
+}
+
+func IndexEverything(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	SearchEngine.IndexBatch(&AllItems{})
+}
+
 type objectnew struct {
 	Title string
 	User  *User
@@ -303,6 +327,7 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		fileitem.Add("fedora-create", todayminute)
 		fileitem.Add("fedora-modify", todayminute)
 		Datasource.IndexItem(fileitem)
+		SearchEngine.IndexRecord(fileitem)
 
 		// make thumbnail in the background
 		go func() {
@@ -318,6 +343,7 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	// save/index the item record last in case we added any
 	// more fields while copying files, e.g. the representative
 	Datasource.IndexItem(newitem)
+	SearchEngine.IndexRecord(newitem)
 
 	target := "/show/und:" + workid
 	http.Redirect(w, r, target, 302)
@@ -415,7 +441,27 @@ func StartBackgroundProcess() {
 	go backgroundRAPchecker(AnnoChan)
 }
 
-type searchresults struct {
+// A Searcher represents our interface to an external index service.
+type Searcher interface {
+	Search(q SearchQuery) (SearchResults, error)
+
+	IndexRecord(item CurateItem)
+
+	IndexBatch(source Batcher)
+}
+
+type SearchQuery struct {
+	Query   string
+	Start   int
+	NumRows int
+}
+
+type SearchResults struct {
+	Total int
+	Items []CurateItem
+}
+
+type searchresultsPage struct {
 	Title      string
 	User       *User
 	Query      string
@@ -423,7 +469,12 @@ type searchresults struct {
 	NumPerPage int
 	StartIndex int
 	ItemList   []CurateItem
+	Total      int
 }
+
+var (
+	SearchEngine Searcher
+)
 
 func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	query := r.FormValue("q")
@@ -438,21 +489,26 @@ func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	offset := numperpage * page
 
-	items, err := Datasource.FindAllRange(offset, numperpage)
+	results, err := SearchEngine.Search(SearchQuery{
+		Query:   query,
+		Start:   offset,
+		NumRows: numperpage,
+	})
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Fprintln(w, err)
 		return
 	}
 
-	output := searchresults{
+	output := searchresultsPage{
 		Title:      "Search",
 		User:       user,
 		Query:      query,
 		Page:       page,
 		NumPerPage: numperpage,
 		StartIndex: offset + 1,
-		ItemList:   items,
+		ItemList:   results.Items,
+		Total:      results.Total,
 	}
 
 	DoTemplate(w, "search", output)

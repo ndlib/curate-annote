@@ -30,15 +30,118 @@ func NewElasticSearch(address string) Searcher {
 	return &ElasticSearcher{Client: client}
 }
 
+const (
+	esMatchAllQuery = `
+{
+  "query": {
+    "match_all": {}
+  },
+  "from": %d,
+  "size": %d
+}`
+
+	esTermQuery = `
+{
+  "query": {
+    "multi_match" : {
+      "query" : %q,
+      "fields" : [ "*" ]
+    }
+  },
+  "from": %d,
+  "size": %d
+}`
+)
+
+type esSearchResults struct {
+	Hits struct {
+		Total struct {
+			Value    int    `json:"value"`
+			Relation string `json:"relation"`
+		} `json:"total"`
+		Hits []*Hit `json:"hits"`
+	} `json:"hits"`
+}
+
+type Hit struct {
+	PID    string                 `json:"_id"`
+	Fields map[string]interface{} `json:"_source"`
+}
+
 func (e *ElasticSearcher) Search(q SearchQuery) (SearchResults, error) {
-	return SearchResults{}, nil
+	buf := &bytes.Buffer{}
+	if q.Query == "" {
+		fmt.Fprintf(buf, esMatchAllQuery, q.Start, q.NumRows)
+	} else {
+		fmt.Fprintf(buf, esTermQuery, q.Query, q.Start, q.NumRows)
+	}
+
+	req := esapi.SearchRequest{
+		Index: []string{"items"},
+		Body:  buf,
+		//StoredFields: []string{
+		//	"PID",
+		//	"dc:title",
+		//	"af-model",
+		//	"representative",
+		//	"dc:creator",
+		//	"dc:description",
+		//	"dc:abstract",
+		//	"dc:created",
+		//	"dc:creator#administrative_unit",
+		//},
+	}
+	response, err := req.Do(context.Background(), e.Client)
+	if err != nil {
+		log.Println("search:", err)
+	}
+	dec := json.NewDecoder(response.Body)
+	results0 := &esSearchResults{}
+	err = dec.Decode(results0)
+	if err != nil {
+		log.Println(err)
+	}
+	response.Body.Close()
+
+	var out SearchResults
+	out.Items = esToCurateItem(results0.Hits.Hits)
+	out.Total = results0.Hits.Total.Value
+	return out, nil
+}
+
+func esToCurateItem(hits []*Hit) []CurateItem {
+	var out []CurateItem
+	for _, doc := range hits {
+		item := CurateItem{
+			PID: doc.PID,
+		}
+		for k, v := range doc.Fields {
+			vv := v.([]interface{})
+			for i := range vv {
+				vvv := vv[i].(string)
+				item.Properties = append(item.Properties, Pair{
+					Predicate: k,
+					Object:    vvv,
+				})
+			}
+		}
+		out = append(out, item)
+	}
+	return out
 }
 
 func (e *ElasticSearcher) IndexRecord(item CurateItem) {
 	// Todo: reformat the item since the JSON form of a CurateItem datatype
 	// confuses elastic search.
 	// make it more like a json object.
-	b, err := json.Marshal(item.AsAlternate())
+	alt := item.AsAlternate()
+	alt = fixRecordForES(alt)
+	if len(alt["PID"]) == 0 {
+		// this record type is not indexed
+		log.Println("Record", item.PID, "is not a type that is indexed")
+		return
+	}
+	b, err := json.Marshal(alt)
 	if err != nil {
 		log.Println(err)
 		return
@@ -62,6 +165,198 @@ func (e *ElasticSearcher) IndexRecord(item CurateItem) {
 	log.Println(response)
 }
 
+var (
+	esDatefields = []string{
+		"dc:created",
+		"dc:date",
+		"dc:date#created",
+		"dc:date#digitized",
+		"dc:date#prior_publication", // not really a date field, but ES thinks it is
+		"dc:dateSubmitted",
+		"dc:issued",
+		"dc:modified",
+		"vracore:wasPresented",
+	}
+
+	esFieldsIndexed = []string{
+		"PID",
+		"af-model",
+		"bendo-item",
+		"bibo:eIssn",
+		"bibo:isbn",
+		"bibo:issue",
+		"bibo:numPages",
+		"bibo:pageEnd",
+		"bibo:pageStart",
+		"bibo:volume",
+		"cd:subject#cpc",
+		"cd:subject#uspc",
+		"dc:abstract",
+		"dc:alternate",
+		"dc:alternative",
+		"dc:availability",
+		"dc:bibliographicCitation",
+		"dc:contributor",
+		"dc:contributor#advisor",
+		"dc:contributor#author",
+		"dc:contributor#curator",
+		"dc:contributor#institution",
+		"dc:contributor#repository",
+		"dc:created",
+		"dc:creator",
+		"dc:creator#administrative_unit",
+		"dc:creator#affiliation",
+		"dc:creator#affilition",
+		"dc:creator#author",
+		"dc:creator#editor",
+		"dc:creator#local",
+		"dc:creator#organization",
+		"dc:date",
+		"dc:date#application",
+		"dc:date#approved",
+		"dc:date#created",
+		"dc:date#digitized",
+		"dc:date#prior_publication",
+		"dc:dateCopyrighted",
+		"dc:dateSubmitted",
+		"dc:description",
+		"dc:description#abstract",
+		"dc:description#code_list",
+		"dc:description#note",
+		"dc:description#table_of_contents",
+		"dc:description#technical",
+		"dc:descriptions",
+		"dc:extent",
+		"dc:extent#claims",
+		"dc:format#extent",
+		"dc:identifier",
+		"dc:identifier#doi",
+		"dc:identifier#isbn",
+		"dc:identifier#issn",
+		"dc:identifier#local",
+		"dc:identifier#other",
+		"dc:identifier#other_application",
+		"dc:identifier#patent",
+		"dc:identifier#prior_publication",
+		"dc:isVersionOf#edition",
+		"dc:issued",
+		"dc:language",
+		"dc:modified",
+		"dc:modifier",
+		"dc:pubisher",
+		"dc:publisher",
+		"dc:publisher#country",
+		"dc:realtion",
+		"dc:related",
+		"dc:relation",
+		"dc:relation#ispartof",
+		"dc:requires",
+		"dc:rights",
+		"dc:rights#permissions",
+		"dc:rightsHolder",
+		"dc:source",
+		"dc:spatial",
+		"dc:subject",
+		"dc:subject#cpc",
+		"dc:subject#ipc",
+		"dc:subject#lcsh",
+		"dc:subject#uspc",
+		"dc:temporal",
+		"dc:title",
+		"dc:title#alternate",
+		"dc:type",
+		"dc:version#edition",
+		"depositor",
+		"ebucore:duration",
+		"ebucore:hasGenre",
+		"fedora-create",
+		"fedora-modify",
+		"isMemberOfCollection",
+		"mrel:ive",
+		"mrel:ivr",
+		"mrel:performer",
+		"mrel:prf",
+		"mrel:ths",
+		"ms:degree",
+		"nd:alephIdentifier",
+		"owner",
+		"representative",
+		"vracore:culturalContext",
+		"vracore:material",
+		"vracore:partnerInSetWith",
+		"vracore:placeOfCreation",
+		"vracore:placeOfDiscovery",
+		"vracore:placeOfPublication",
+		"vracore:wasPresented",
+		"vracore:wasProduced",
+	}
+
+	esAFModelsIgnored = []string{
+		"GenericFile",
+		"Hydramata_Group",
+		"LinkedResource",
+		"Person",
+		"Profile",
+		"ProfileSection",
+	}
+)
+
+// fixRecordForES takes an item and creates an elastic search record for it.
+// The item might not be of a type that is indexed in ES, in which case the returned
+// structure will be missing the "PID" key.
+//
+// There are too many strange fields with data that confuses elastic search since we
+// did not predefine any fields and it is guessing which type each is.
+// (e.g. dc:date#prior_publication on patents is a doozy)
+//
+// Since we are only using ES as an index, we alter records to make them fit what
+// ES wants and to improve search recall.
+//
+// We also enrich the records to show which have annotations, which are local, etc.
+func fixRecordForES(item CurateItemAlt) CurateItemAlt {
+	result := make(CurateItemAlt)
+
+	// Return early if this is an af-model we don't index
+	afmodel := item["af-model"][0]
+	for _, model := range esAFModelsIgnored {
+		if model == afmodel {
+			return result
+		}
+	}
+
+	// copy the fields we care about to the new item
+	for _, field := range esFieldsIndexed {
+		list := item[field]
+		if len(list) == 0 {
+			continue
+		}
+		result[field] = list
+	}
+
+	// Try to normalize all the date fields.
+	//
+	// ElasticSearch complains about some of our date formats, e.g.
+	// "2018-05-20Z" (the trailing Z), or "Sep-64".
+	for _, field := range esDatefields {
+		list := result[field]
+		for i := 0; i < len(list); i++ {
+			newtime := ParseNotWellformedTime(list[i])
+			if newtime.IsZero() {
+				list = append(list[:i], list[i+1:]...)
+			} else {
+				list[i] = newtime.Format("2006-01-02")
+			}
+		}
+		if len(list) > 0 {
+			result[field] = list
+		} else {
+			delete(result, field)
+		}
+	}
+
+	return result
+}
+
 // A Batcher provides a way to iterate through a (potentially very large) set of
 // CurateItems. Each time Batch() is called another subset of the set should be
 // returned. The empty list is returned when there is nothing left and signals
@@ -78,6 +373,7 @@ func (e *ElasticSearcher) IndexBatch(source Batcher) {
 
 	buf := &bytes.Buffer{}
 	count := 0
+	skip := 0
 	start := time.Now()
 	for {
 		items := source.Batch()
@@ -87,7 +383,14 @@ func (e *ElasticSearcher) IndexBatch(source Batcher) {
 
 		buf.Reset()
 		for _, item := range items {
-			b, err := json.Marshal(item.AsAlternate())
+			alt := item.AsAlternate()
+			alt = fixRecordForES(alt)
+			if len(alt["PID"]) == 0 {
+				// this record type is not indexed
+				skip++
+				continue
+			}
+			b, err := json.Marshal(alt)
 			if err != nil {
 				log.Println(item.PID, err)
 				continue
@@ -115,7 +418,7 @@ func (e *ElasticSearcher) IndexBatch(source Batcher) {
 		log.Println(response)
 		response.Body.Close()
 	}
-	log.Println("BulkIndex", count, "Items", time.Now().Sub(start))
+	log.Println("BulkIndex", count, "Items Indexed", skip, "Skipped", time.Now().Sub(start))
 }
 
 // A Grouper wraps a source Batcher and always returns lists containing Goal

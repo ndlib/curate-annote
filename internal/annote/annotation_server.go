@@ -69,6 +69,7 @@ func ParseNotWellformedTime(input string) time.Time {
 	// we try incresingly less specific formats until something matches
 	formats := []string{
 		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02Z",
 		"2006-01-02",
 		"2006-01",
 		"2006",
@@ -78,6 +79,7 @@ func ParseNotWellformedTime(input string) time.Time {
 		"1/2/06",
 		"January 2, 2006",
 		"January 2006",
+		"Jan-06",
 	}
 
 	for _, f := range formats {

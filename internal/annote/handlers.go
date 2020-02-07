@@ -457,10 +457,11 @@ type SearchQuery struct {
 }
 
 type SearchResults struct {
+	Total int
 	Items []CurateItem
 }
 
-type searchresults struct {
+type searchresultsPage struct {
 	Title      string
 	User       *User
 	Query      string
@@ -468,6 +469,7 @@ type searchresults struct {
 	NumPerPage int
 	StartIndex int
 	ItemList   []CurateItem
+	Total      int
 }
 
 var (
@@ -498,7 +500,7 @@ func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	output := searchresults{
+	output := searchresultsPage{
 		Title:      "Search",
 		User:       user,
 		Query:      query,
@@ -506,6 +508,7 @@ func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		NumPerPage: numperpage,
 		StartIndex: offset + 1,
 		ItemList:   results.Items,
+		Total:      results.Total,
 	}
 
 	DoTemplate(w, "search", output)

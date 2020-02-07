@@ -152,6 +152,9 @@ var (
 	}
 )
 
+// solrToCurateItem translates the solr record we get into a CurateItem
+// for the search results. The curateitem we get is only an approximation
+// to the actual curate item. Use the database to get the definitive version of it.
 func solrToCurateItem(docs []map[string]StringOrList) []CurateItem {
 	var out []CurateItem
 	for _, doc := range docs {
@@ -159,12 +162,16 @@ func solrToCurateItem(docs []map[string]StringOrList) []CurateItem {
 		for k, v := range doc {
 			vv := []string(v)
 			if k == "id" {
+				// there is a special field for the PID
 				item.PID = vv[0]
 				continue
 			}
+			// Use the local translation of the field name if we have one.
 			if kk, ok := solrXlat[k]; ok {
 				k = kk
 			}
+			// The CurateItem is denormalized, so add an entry for each value we
+			// received from the solr record.
 			for i := range vv {
 				item.Properties = append(item.Properties, Pair{
 					Predicate: k,

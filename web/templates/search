@@ -324,7 +324,7 @@
           </li>
 
           <span class="page_entries">
-            <strong>{{ .StartIndex }}</strong> - <strong>{{ add .StartIndex (len .ItemList) }}</strong> of <strong>13927</strong>
+            <strong>{{ .StartIndex }}</strong> - <strong>{{ add .StartIndex (len .ItemList) }}</strong> of <strong>{{ .Total }}</strong>
           </span>
           <li class="next-page ">
             <a href="/search?p={{ add .Page 1 }}&amp;n={{ .NumPerPage }}" rel="next">Next &raquo;</a>

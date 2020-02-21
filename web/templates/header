@@ -2,7 +2,7 @@
 tbody tr:nth-child(even) { background-color: #eeeeee; }
 </style></head><body>
 <a href="/">Home</a>
-• <a href="/config">Settings</a>
+• <a href="/about">About</a>
 • <a href="/profile">Profile</a>
 • <a href="/anno">Annotation Status</a> <br/>
 

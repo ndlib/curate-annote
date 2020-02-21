@@ -4,6 +4,9 @@
 
 <p>This is a non-public test server.</p>
 
-<p><a href="/search">Enter</a></p>
+<ul>
+    <li><a href="/search">Enter</a></li>
+    <li><a href="/new-user">Create an Account</a></li>
+</ul>
 
 {{ template "footer" }}

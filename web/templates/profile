@@ -1,9 +1,10 @@
-{{ template "header-fancy" . }}
+{{ $title := "User Profile" }}
+{{ template "header-fancy" dict "Title" $title }}
 
 <div id="main" role="main" class="page-main container ">
   <div class="row">
     <div class="span12 main-header">
-      <h1>{{ .Title }}</h1>
+      <h1>{{ $title }}</h1>
     </div>
   </div>
 
@@ -34,22 +35,10 @@
     </div>
   </div>
 
-  <div class="row">
-    <div class="span12">
-      <form class="form-inline" method="POST">
-        <input type="text" class="input" name="username" placeholder="New Username">
-        <button type="submit" class="btn" name="newuser" value="1">Create New User</button>
-      </form>
-    </div>
-  </div>
-
   {{ with .Message }}
     <p>{{ . }}</p>
   {{ end }}
 
-  {{ with .NewUser }}
-    <p>New user <tt>{{ .Username }}</tt> created. Send them this <a href="/reset?r={{ .HashedPassword }}">Link to Reset the password</a>.</p>
-  {{ end }}
 </div>
 
 {{ template "footer-fancy" }}

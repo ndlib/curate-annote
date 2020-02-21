@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/migration"
 	_ "github.com/go-sql-driver/mysql"
@@ -18,6 +19,7 @@ var migrations = []migration.Migrator{
 	migration1,
 	migration2,
 	migration3,
+	migration4,
 }
 
 func migration1(tx migration.LimitedTx) error {
@@ -61,6 +63,21 @@ func migration3(tx migration.LimitedTx) error {
 		INDEX i_item (item),
 		INDEX i_username (username),
 		INDEX i_status (status))`,
+	}
+	return execlist(tx, s)
+}
+
+func migration4(tx migration.LimitedTx) error {
+	var s = []string{
+		`CREATE TABLE IF NOT EXISTS events (
+			id int PRIMARY KEY AUTO_INCREMENT,
+			event varchar(32),
+			username varchar(255),
+			timestamp datetime,
+			other varchar(255),
+			INDEX i_username (username),
+			INDEX i_event (event),
+			INDEX i_timestamp (timestamp))`,
 	}
 	return execlist(tx, s)
 }
@@ -428,4 +445,18 @@ func (sq *MysqlDB) UpdateUUID(record ItemUUID) error {
 		record.Username,
 	)
 	return err
+}
+
+func (sq *MysqlDB) RecordEvent(event string, user *User, other string) {
+	t := time.Now()
+	log.Println("EVENT", event, user.Username, other, t)
+	_, err := sq.db.Exec(`INSERT INTO events (event, username, timestamp, other) VALUES (?, ?, ?, ?)`,
+		event,
+		user.Username,
+		t,
+		other,
+	)
+	if err != nil {
+		log.Println(err)
+	}
 }

@@ -31,10 +31,13 @@ func AddRoutes() http.Handler {
 		{"POST", "/index", IndexEverything, true},
 		{"GET", "/reset", ResetShow, false},
 		{"POST", "/reset", ResetUpdate, false},
+		{"GET", "/new-user", ProfileNewShow, false},
+		{"POST", "/new-user", ProfileNewPost, false},
 		{"GET", "/profile", ProfileShow, true},
 		{"POST", "/profile", ProfileUpdate, true},
 		{"GET", "/profile/edit", ProfileEditShow, true},
 		{"POST", "/profile/edit", ProfileEditUpdate, true},
+		{"GET", "/about", AboutShow, false},
 		{"GET", "/config", ConfigPage, true},
 		{"POST", "/config", UpdateConfig, true},
 	}

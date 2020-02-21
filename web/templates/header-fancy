@@ -17,26 +17,17 @@
 </head>
 <body>
 
-<a href="/">Home</a>
-• <a href="/config">Settings</a>
-• <a href="/profile">Profile</a> 
-• <a href="/anno">Annotation Status</a> <br/>
+  <div class="row">
+    <div class="span12">
+      <a href="/">Home</a>
+      • <a href="/about">About</a>
+      • <a href="/profile">Profile</a>
+      • <a href="/anno">Annotation Status</a>
+      <br/>
+    </div>
+  </div>
 
   <header role="banner" class="page-banner">
-    <div class="brand-bar-wrapper">
-      <div class="container">
-        <div class="row">
-          <div id="brand-bar" class="span12">
-            <div class="top-link university">
-              <a href="https://www.nd.edu">University <i>of</i> Notre Dame</a>
-            </div>
-            <div class="top-link division">
-              <a href="https://library.nd.edu">Hesburgh Libraries</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     <div class="title-bar-wrapper">
       <div class="container">
         <div class="row">

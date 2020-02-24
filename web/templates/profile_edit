@@ -1,23 +1,56 @@
-{{ template "header" }}
+{{ $title := "Update Profile" }}
+{{ template "header-fancy" dict "Title" $title }}
 
-<h1>Edit User Profile</h1>
+<div id="main" role="main" class="page-main container">
+  <div class="row">
+    <div class="span12 main-header">
+      <h1>{{ $title }}</h1>
+    </div>
+  </div>
 
-{{ with .Message }}
-<p>{{ . }}</p>
-{{ end }}
+  <div class="row">
+    <div class="span12">
+      {{ with .Message }}
+        <p class="alert alert-error">{{ . }}</p>
+      {{ end }}
 
-<form method="POST">
-  <fieldset>
-    User ID: <tt>{{ .User.ID }}</tt></br>
-    Created: <tt>{{ .User.Created }}</tt></br>
-    <label for="username">Username</label>
-    <input type="text" id="username" name="username" value="{{ .User.Username }}"></br>
+      <form class="form-horizontal" method="POST">
+        <div class="control-group">
+          <label class="control-label" for="userid">User ID</label>
+          <div class="controls">
+            <input type="text" class="input-xlarge" name="userid" value="{{ .User.ID }}" disabled>
+          </div>
+        </div>
 
-    <label for="orcid">ORICD</label>
-    <input type="text" id="orcid" name="orcid" value="{{ .User.ORCID }}"></br>
+        <div class="control-group">
+          <label class="control-label" for="created">Date Created</label>
+          <div class="controls">
+            <input type="text" class="input-xlarge" name="created" value="{{ .User.Created }}" disabled>
+          </div>
+        </div>
 
-    <input type="submit" value="Update">
-  </fieldset>
-</form>
+        <div class="control-group">
+          <label class="control-label" for="username">Username</label>
+          <div class="controls">
+            <input type="text" class="input-xlarge" name="username" value="{{ .User.Username }}">
+          </div>
+        </div>
 
-{{ template "footer" }}
+        <div class="control-group">
+          <label class="control-label" id="orcid">ORCID</label>
+          <div class="controls">
+            <input type="text" class="input-xlarge" name="orcid" placeholder="0000-0000-0000-0000" value="{{ .User.ORCID }}">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <a class="btn" href="/profile">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{{ template "footer-fancy" }}

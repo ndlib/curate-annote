@@ -10,7 +10,6 @@ import (
 )
 
 type profilePage struct {
-	Title   string
 	User    *User
 	Message string
 	NewUser *User
@@ -20,18 +19,19 @@ func ProfileShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	username, _, _ := r.BasicAuth()
 	user := FindUser(username)
 
-	DoTemplate(w, "profile", profilePage{Title: "User Profile", User: user})
+	DoTemplate(w, "profile", profilePage{User: user})
 }
 
 func ProfileUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	username, _, _ := r.BasicAuth()
 	user := FindUser(username)
 
-	v := profilePage{Title: "Profile", User: user}
+	v := profilePage{User: user}
 
 	// figure out what is desired...
 	cp := r.FormValue("changepass")
 	if cp != "" {
+		Datasource.RecordEvent("ask-pw-reset", user, "")
 		t, err := CreateResetToken(username)
 		if err != nil {
 			v.Message = err.Error()
@@ -39,19 +39,6 @@ func ProfileUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 			return
 		}
 		http.Redirect(w, r, "/reset?r="+t, 302)
-		return
-	}
-
-	nu := r.FormValue("newuser")
-	if nu != "" {
-		newusername := r.FormValue("username")
-		newuser, err := CreateNewUser(newusername)
-		if err != nil {
-			v.Message = err.Error()
-		} else {
-			v.NewUser = newuser
-		}
-		DoTemplate(w, "profile", v)
 		return
 	}
 
@@ -63,7 +50,7 @@ func ProfileEditShow(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 	username, _, _ := r.BasicAuth()
 	user := FindUser(username)
 
-	DoTemplate(w, "profile_edit", profilePage{Title: "Edit Profile", User: user})
+	DoTemplate(w, "profile_edit", profilePage{User: user})
 }
 
 var (
@@ -74,7 +61,7 @@ func ProfileEditUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	var err error
 	username, _, _ := r.BasicAuth()
 	user := FindUser(username)
-	v := profilePage{Title: "Profile", User: user}
+	v := profilePage{User: user}
 	var messages []string
 
 	newusername := r.FormValue("username")
@@ -84,6 +71,7 @@ func ProfileEditUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 			messages = append(messages, "Username already exists")
 			goto do_orcid
 		}
+		Datasource.RecordEvent("user-change-username", user, newusername)
 		user.Username = newusername
 	}
 
@@ -95,6 +83,7 @@ do_orcid:
 			messages = append(messages, "no orcid in "+orcid)
 			goto out
 		}
+		Datasource.RecordEvent("user-update-orcid", user, "")
 		user.ORCID = neworcid
 	} else {
 		user.ORCID = ""
@@ -116,4 +105,70 @@ out:
 		return
 	}
 	http.Redirect(w, r, "/profile", 302)
+}
+
+type NewUserData struct {
+	Message  string
+	Username string
+	ORCID    string
+}
+
+func ProfileNewShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	DoTemplate(w, "user-new", &NewUserData{})
+}
+
+func ProfileNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// make sure data has been entered, if so, try to make new user
+	// either return to the sign-up page or redirect to the password reset page
+
+	username := r.FormValue("username")
+	orcid := r.FormValue("orcid")
+	// prepopulate this data in case there was an error and we want
+	// to return it to the user so it can be fixed.
+	v := &NewUserData{
+		Username: username,
+		ORCID:    orcid,
+	}
+	// set up a deferred func so we can return early from errors
+	defer func() {
+		if v.Message != "" {
+			DoTemplate(w, "user-new", v)
+		}
+	}()
+	if username == "" {
+		v.Message = "A user name is required"
+		return
+	}
+	// normalize the ORCID identifier
+	if orcid != "" {
+		neworcid := orcidRE.FindString(orcid)
+		if neworcid == "" {
+			v.Message = "Provided ORCID is not well formed"
+			return
+		}
+		orcid = neworcid
+	}
+
+	Datasource.RecordEvent("user-create-account", &User{Username: username}, "")
+
+	// try to create this user. CreateNewUser() returns an error
+	// if the username already exists.
+	user, err := CreateNewUser(username)
+	if err != nil {
+		log.Println(err)
+		v.Message = err.Error()
+		return
+	}
+
+	if orcid != "" {
+		user.ORCID = orcid
+		err = SaveUser(user)
+		if err != nil {
+			log.Println(err)
+			v.Message = err.Error()
+			return
+		}
+	}
+
+	http.Redirect(w, r, "/reset?r="+user.HashedPassword, 302)
 }

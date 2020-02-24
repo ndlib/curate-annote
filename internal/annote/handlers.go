@@ -1,6 +1,7 @@
 package annote
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -126,6 +127,24 @@ func join(ss []string, c string) string {
 	return strings.Join(ss, c)
 }
 
+// dict0 is used to pass multiple parameters to nested templates.
+func dict0(values ...interface{}) (map[string]interface{}, error) {
+	// The idea and this nice implementation are from
+	// https://stackoverflow.com/questions/18276173/calling-a-template-with-several-pipeline-parameters
+	if len(values)%2 != 0 {
+		return nil, errors.New("invalid dict call")
+	}
+	dict := make(map[string]interface{}, len(values)/2)
+	for i := 0; i < len(values); i += 2 {
+		key, ok := values[i].(string)
+		if !ok {
+			return nil, errors.New("dict keys must be strings")
+		}
+		dict[key] = values[i+1]
+	}
+	return dict, nil
+}
+
 // LoadTemplates will load and compile our templates into memory
 func LoadTemplates(path string) error {
 	t := template.New("")
@@ -143,6 +162,7 @@ func LoadTemplates(path string) error {
 		"add":               add0,
 		"sub":               sub0,
 		"Join":              join,
+		"dict":              dict0,
 	})
 	t, err := t.ParseGlob(filepath.Join(path, "*"))
 	Templates = t
@@ -174,6 +194,10 @@ func NotImplemented(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 // IndexHandler responds to the root route.
 func IndexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	DoTemplate(w, "homepage", nil)
+}
+
+func AboutShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	DoTemplate(w, "about", nil)
 }
 
 func GetObject(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -245,6 +269,7 @@ func ObjectIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func IndexEverything(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	Datasource.RecordEvent("index-all", &User{}, "")
 	SearchEngine.IndexBatch(&AllItems{})
 }
 
@@ -282,11 +307,15 @@ func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	newitem.Add("fedora-create", todayminute)
 	newitem.Add("fedora-modify", todayminute)
 
+	Datasource.RecordEvent("new-item", &User{Username: username}, workid)
+
 	// now save all the file attachments
 	isfirstfile := true
 	for _, attached := range r.MultipartForm.File["files"] {
 		// make a new item for each...
 		fileid := NewIdentifier()
+
+		Datasource.RecordEvent("new-file", &User{Username: username}, fileid)
 
 		// make first item the representative of the work
 		if isfirstfile {
@@ -650,10 +679,12 @@ func ResetUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	pw1 := r.FormValue("pwd")
 	pw2 := r.FormValue("pwd2")
 	if pw1 != pw2 {
-		v.Message = "The password was not entered the same both times."
+		v.Message = "The two passwords don't match."
 		DoTemplate(w, "reset", v)
 		return
 	}
+
+	Datasource.RecordEvent("update-password", user, "")
 
 	err := ResetPassword(user.Username, pw1)
 	if err != nil {

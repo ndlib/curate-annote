@@ -1,28 +1,57 @@
-{{ template "header" }}
+{{ $title := "Set Password" }}
+{{ template "header-fancy" dict "Title" $title }}
 
-<h1>Reset Password</h1>
+<div id="main" role="main" class="page-main container ">
+  <div class="row">
+    <div class="span12 main-header">
+      <h1>{{ $title }}</h1>
+    </div>
+  </div>
 
 {{ if and .ResetToken .User }}
-    <p>Please enter a new password.</p>
-    {{ with .Message }}
-        <p>{{ . }}</p>
-    {{ end }}
-    <form method="POST">
-      <fieldset>
-        User: <tt>{{.User.Username}}</tt></br>
-        <label for="pwd">New Password</label>
-        <input type="password" id="pwd" name="pwd"></br>
-        <label for="pwd2">New Password (again)</label>
-        <input type="password" id="pwd2" name="pwd2"></br>
-        <input type="hidden" name="r" value="{{ .ResetToken }}">
-        <input type="submit" value="Reset">
-      </fieldset>
-    </form>
+  <div class="row">
+    <div class="span12">
+      <p class="lead">Please enter a new password.</p>
+
+      {{ with .Message }}
+          <p class="alert alert-error">{{ . }}</p>
+      {{ end }}
+
+      <form class="form-horizontal" method="POST">
+        <div class="control-group">
+          <label class="control-label" for="username">Username</label>
+          <div class="controls">
+            <input type="text" class="input-xlarge" name="username" value="{{ .User.Username }}" disabled>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="pwd">New Password</label>
+          <div class="controls">
+            <input type="password" class="input-xlarge" name="pwd">
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="pwd2">New Password (again)</label>
+          <div class="controls">
+            <input type="password" class="input-xlarge" name="pwd2">
+          </div>
+        </div>
+        <div class="control-group">
+          <input type="hidden" name="r" value="{{ .ResetToken }}">
+          <input type="submit" class="btn btn-primary" value="Submit">
+        </div>
+      </form>
+    </div>
+  </div>
 {{ else }}
-    <p>The reset token is invalid.</p>
-    {{ with .Message }}
-        <p>{{ . }}</p>
-    {{ end }}
+  <div class="row">
+    <div class="span12">
+      <p class="text-error">The reset token is invalid.</p>
+      {{ with .Message }}
+          <p class="text-error">{{ . }}</p>
+      {{ end }}
+    </div>
+  </div>
 {{ end }}
 
-{{ template "footer" }}
+{{ template "footer-fancy" }}

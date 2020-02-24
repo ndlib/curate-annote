@@ -1,0 +1,46 @@
+{{ $title := "Create an Account" }}
+{{ template "header-fancy" dict "Title" $title }}
+
+<div id="main" role="main" class="page-main container ">
+  <div class="row">
+    <div class="span12 main-header">
+      <h1>{{ $title }}</h1>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="span12">
+      <p class="lead">This site uses ORCIDs to log in to the annotation viewer.
+      You need to enter one to view or create annotations.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="span12">
+      {{ with .Message }}
+        <p class="alert alert-error">{{ . }}</p>
+      {{ end }}
+
+      <form class="form-horizontal" method="POST">
+        <div class="control-group">
+          <label class="control-label" for="username">Your User Name</label>
+          <div class="controls">
+            <input type="text" class="input-xlarge" name="username" placeholder="jdoe" value="{{ .Username }}">
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label" id="orcid">Your ORCID Identifier</label>
+          <div class="controls">
+            <input type="text" class="input-xlarge" name="orcid" placeholder="0000-0000-0000-0000" value="{{ .ORCID }}">
+          </div>
+        </div>
+        <div class="control-group">
+          <button type="submit" class="btn btn-primary">Next</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{{ template "footer-fancy" }}

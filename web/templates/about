@@ -1,0 +1,32 @@
+
+{{ $title := "About" }}
+
+{{ template "header-fancy" dict "Title" $title }}
+
+<div id="main" role="main" class="page-main container">
+  <div class="row">
+    <div class="span12 main-header">
+      <h1>{{ $title }}</h1>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="span12">
+    <p>This website is a prototype to experiment with ways of
+    integrating an external annotation service with a digital
+    repository.
+    </p>
+
+    <p>Anyone may sign up for an account.
+    </p>
+
+    <p>This work is possible due to the Preservation Quality Tools IMLS grant.
+    It is being performed by the Hesburgh Libraries at the University of Notre Dame
+    and Data Futures.
+    </p>
+
+    </div>
+  </div>
+</div>
+
+{{ template "footer-fancy" }}

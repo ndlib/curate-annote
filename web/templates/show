@@ -1,5 +1,5 @@
-{{ template "header-fancy" . }}
 {{ $title := FirstField .Item "dc:title" "filename" }}
+{{ template "header-fancy" dict "Title" $title }}
 
 {{ with .Item }}
   <div id="main" role="main" class="page-main container ">

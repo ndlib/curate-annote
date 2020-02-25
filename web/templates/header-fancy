@@ -39,22 +39,26 @@
         </div>
         <div class="action-bar row">
           <div class="span12">
-            <div class="site-search">
-              <form accept-charset="UTF-8" action="/search" class="search-form" method="get">
-                <fieldset>
-                  <legend class="accessible-hidden">Search CurateND</legend>
-                  <label class="accessible-hidden" for="catalog_search">Search CurateND</label>
-                  <input class="q search-query" id="catalog_search" name="q" placeholder="Search CurateND" size="30" tabindex="1" type="search" />
-                  <button type="submit" class="search-submit" id="keyword-search-submit">
-                    <img class="search-icon" src="/static/search.svg">
-                    <span class="accessible-hidden">Search</span>
-                  </button>
-                </fieldset>
-              </form>
-            </div>
+            {{ if not .HideSearch }}
+              <div class="site-search">
+                <form accept-charset="UTF-8" action="/search" class="search-form" method="get">
+                  <fieldset>
+                    <legend class="accessible-hidden">Search CurateND</legend>
+                    <label class="accessible-hidden" for="catalog_search">Search CurateND</label>
+                    <input class="q search-query" id="catalog_search" name="q" placeholder="Search CurateND" size="30" tabindex="1" type="search" />
+                    <button type="submit" class="search-submit" id="keyword-search-submit">
+                      <img class="search-icon" src="/static/search.svg">
+                      <span class="accessible-hidden">Search</span>
+                    </button>
+                  </fieldset>
+                </form>
+              </div>
+            {{ end }}
 
             <nav class="site-actions" role="menu">
+
               <a class="btn btn-primary about" href="/about" role="menuitem">About</a>
+
               <div class="btn-group add-content">
                 <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" id="add-content">
                   Deposit<span class="caret"></span>
@@ -64,25 +68,6 @@
                 </ul>
               </div>
 
-              <div class="btn-group my-actions">
-                <a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
-                  Manage<span class="caret"></span>
-                </a>
-                <ul class="dropdown-menu">
-                  <li><a class="my-works" href="/catalog?f%5Bgeneric_type_sim%5D%5B%5D=Work&amp;works=mine" role="menuitem">My Works</a></li>
-                  <li><a class="my-groups" href="/hydramata/groups" role="menuitem">Group Administration</a></li>
-                  <li><a class="my-account" href="/profile" role="menuitem">My Account</a></li>
-                  <li class="divider"></li>
-                  <li><a href="/access_tokens" role="menuitem">Temporary Access Grants</a></li>
-                  <li><a href="/api/access_tokens" role="menuitem">API Access Tokens</a></li>
-                  <li class="divider"></li>
-                  <li><a href="/admin" role="menuitem">Repository Administration</a></li>
-                  <li class="divider"></li>
-                  <li><a class="log-out" href="/users/sign_out" role="menuitem">Log Out</a></li>
-                </ul>
-              </div>
-
-              <a class="btn btn-primary faq" href="/faqs" role="menuitem">FAQ</a>
             </nav>
           </div>
         </div>

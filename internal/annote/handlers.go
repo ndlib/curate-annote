@@ -227,7 +227,6 @@ type showTemplate struct {
 	Messages       []string
 	Item           CurateItem
 	User           *User
-	Title          string
 	AnnotationInfo ItemAnnotationInfo
 }
 
@@ -248,7 +247,6 @@ func ObjectShow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	DoTemplate(w, "show", showTemplate{
 		Item:           item,
 		User:           user,
-		Title:          item.FirstField("dc:title", "filename"),
 		AnnotationInfo: GetAnnotationInfoForItem(pid, username),
 	})
 }
@@ -274,15 +272,14 @@ func IndexEverything(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 }
 
 type objectnew struct {
-	Title string
-	User  *User
+	User *User
 }
 
 func ObjectNew(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	username, _, _ := r.BasicAuth()
 	user := FindUser(username)
 
-	DoTemplate(w, "record-new", objectnew{Title: "Deposit New Item", User: user})
+	DoTemplate(w, "record-new", objectnew{User: user})
 }
 
 func ObjectNewPost(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -491,7 +488,6 @@ type SearchResults struct {
 }
 
 type searchresultsPage struct {
-	Title      string
 	User       *User
 	Query      string
 	Page       int
@@ -530,7 +526,6 @@ func SearchPage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	output := searchresultsPage{
-		Title:      "Search",
 		User:       user,
 		Query:      query,
 		Page:       page,
@@ -552,7 +547,6 @@ func parseIntDefault(s string, v int) int {
 }
 
 type annotatePage struct {
-	Title    string
 	User     *User
 	Query    string
 	Messages []string
@@ -579,7 +573,6 @@ func ShowAnnotateStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 	if err != nil {
 		output.Messages = append(output.Messages, err.Error())
 	}
-	output.Title = "Annotation Upload Status Page"
 	output.User = user
 	output.Records = ids
 	output.Query = userq

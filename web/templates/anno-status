@@ -1,5 +1,5 @@
-{{ template "header-fancy" . }}
-{{ $title := .Title }}
+{{ $title := "Annotation Upload Status Page" }}
+{{ template "header-fancy" dict "Title" $title }}
 
   <div id="main" role="main" class="page-main container ">
     <div class="row">

@@ -1,4 +1,5 @@
-{{ template "header-fancy" . }}
+{{ $title := "Search" }}
+{{ template "header-fancy" dict "Title" $title "HideSearch" true }}
 
 <main id="main" role="main" class="page-main container search-results ">
   <div class="row">

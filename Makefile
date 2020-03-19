@@ -1,4 +1,4 @@
-BINARIES:=annote-server
+BINARIES:=annote-server fix-embargo-dates
 GOCMD:=go
 VERSION:=$(shell git describe --always)
 PACKAGES:=$(shell go list ./... | grep -v /vendor/)
@@ -19,6 +19,9 @@ clean:
 # Need to include initial "./" in path so go knows it is a relative package path.
 annote-server:
 	$(GOCMD) build ./cmd/annote-server
+
+fix-embargo-dates:
+	$(GOCMD) build ./cmd/fix-embargo-dates
 
 # to be run on the server. updates the running system.
 deploy: annote-server

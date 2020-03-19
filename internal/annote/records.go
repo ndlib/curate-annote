@@ -210,7 +210,7 @@ type Access struct {
 }
 type rightsDS struct {
 	Access  []Access `xml:"access"`
-	Embargo string   `xml:"embargo>machine"`
+	Embargo string   `xml:"embargo>machine>date"`
 }
 
 func ReadRightsMetadata(remote *RemoteFedora, id string, result *CurateItem) error {

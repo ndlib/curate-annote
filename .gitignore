@@ -5,3 +5,4 @@ download_cache/*
 /cmd/annote-server/annote-server
 **/config
 uploads/*
+node_modules/*

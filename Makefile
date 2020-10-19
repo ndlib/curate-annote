@@ -5,7 +5,7 @@ PACKAGES:=$(shell go list ./... | grep -v /vendor/)
 
 .PHONY: all test test-integration clean rpm $(BINARIES)
 
-all: $(BINARIES)
+all: $(BINARIES) web/static/mirador.js
 
 test:
 	$(GOCMD) test -v github.com/ndlib/curate-annote/internal/annote
@@ -19,6 +19,9 @@ clean:
 # Need to include initial "./" in path so go knows it is a relative package path.
 annote-server:
 	$(GOCMD) build ./cmd/annote-server
+
+web/static/mirador.js: js-src/index.js
+	npm run webpack
 
 fix-embargo-dates:
 	$(GOCMD) build ./cmd/fix-embargo-dates

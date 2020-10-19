@@ -6,8 +6,8 @@ import LocalStorageAdapter from 'mirador-annotations/es/LocalStorageAdapter';
 const config = {
   id: 'demo',
   annotation: {
-    adapter: (canvasId) => new LocalStorageAdapter(`localStorage://?canvasId=${canvasId}`),
-    // adapter: (canvasId) => new AnnototAdapter(canvasId, 'https://annotation-test.library.nd.edu/annotations'),
+    // adapter: (canvasId) => new LocalStorageAdapter(`localStorage://?canvasId=${canvasId}`),
+      adapter: (canvasId) => new AnnototAdapter(canvasId, 'http://localhost:8888/'),
   },
   window: {
     defaultSideBarPanel: 'annotations',

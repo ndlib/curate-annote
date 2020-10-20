@@ -20,6 +20,7 @@ var migrations = []migration.Migrator{
 	migration2,
 	migration3,
 	migration4,
+	migration5,
 }
 
 func migration1(tx migration.LimitedTx) error {
@@ -78,6 +79,25 @@ func migration4(tx migration.LimitedTx) error {
 			INDEX i_username (username),
 			INDEX i_event (event),
 			INDEX i_timestamp (timestamp))`,
+	}
+	return execlist(tx, s)
+}
+
+func migration5(tx migration.LimitedTx) error {
+	var s = []string{
+		`CREATE TABLE IF NOT EXISTS tots (
+			id int PRIMARY KEY AUTO_INCREMENT,
+			uuid varchar(64),
+			canvas varchar(255),
+			data text,
+			creator  varchar(255),
+			createdate datetime,
+			modifiedby varchar(255),    
+			modifydate datetime,
+			INDEX i_uuid (uuid),
+			INDEX i_canvas (canvas),
+			INDEX i_creator (creator),
+			INDEX i_modified (modifydate))`,
 	}
 	return execlist(tx, s)
 }
@@ -459,4 +479,69 @@ func (sq *MysqlDB) RecordEvent(event string, user *User, other string) {
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+//
+// Annatot functions
+//
+
+func (sq *MysqlDB) TotsByCanvas(canvas string) ([]tots, error) {
+	log.Println("totbycanvas", canvas)
+	var result []tots
+	rows, err := sq.db.Query(`
+		SELECT id, uuid, canvas, data, creator, createdate, modifiedby, modifydate
+		FROM tots
+		WHERE canvas = ?
+		ORDER BY id`,
+		canvas,
+	)
+	if err != nil {
+		return result, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		t := tots{}
+		err = rows.Scan(&t.ID,
+			&t.UUID,
+			&t.Canvas,
+			&t.Data,
+			&t.Creator,
+			&t.CreateDate,
+			&t.ModifiedBy,
+			&t.ModifyDate,
+		)
+		result = append(result, t)
+	}
+	if rows.Err() != nil {
+		err = rows.Err()
+	}
+	return result, err
+}
+
+func (sq *MysqlDB) TotCreate(tot tots) error {
+	log.Println("TotCreate", tot)
+	_, err := sq.db.Exec(`INSERT INTO tots (uuid, canvas, data, creator, createdate, modifiedby, modifydate)
+	VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		tot.UUID,
+		tot.Canvas,
+		tot.Data,
+		tot.Creator,
+		tot.CreateDate,
+		tot.ModifiedBy,
+		tot.ModifyDate,
+	)
+	return err
+}
+
+// update the annotation given by tot.UUID to have tot.Data
+func (sq *MysqlDB) TotUpdateData(tot tots) error {
+	log.Println("TotUpdateData", tot)
+	_, err := sq.db.Exec(`UPDATE tots SET data = ?, modifiedby = ?, modifydate = ? WHERE uuid = ?`,
+		tot.Data,
+		tot.ModifiedBy,
+		tot.ModifyDate,
+		tot.UUID,
+	)
+	return err
+
 }

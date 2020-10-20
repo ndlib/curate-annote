@@ -40,6 +40,12 @@ func AddRoutes() http.Handler {
 		{"GET", "/about", AboutShow, false},
 		{"GET", "/config", ConfigPage, true},
 		{"POST", "/config", UpdateConfig, true},
+		// Annotot endpoints
+		{"GET", "/annotot/pages", AnnototPages, false},
+		{"GET", "/annotot/lists", NotImplemented, false},
+		{"GET", "/annotot", NotImplemented, false},
+		{"POST", "/annotot", AnnototCreate, true},
+		{"PATCH", "/annotot/:uuid", AnnototUpdate, true},
 	}
 
 	r := httprouter.New()

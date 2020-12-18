@@ -317,6 +317,10 @@ func fixRecordForES(item CurateItemAlt) CurateItemAlt {
 	result := make(CurateItemAlt)
 
 	// Return early if this is an af-model we don't index
+	if len(item["af-model"]) == 0 {
+		log.Println("Record", item["PID"], "has no af-model")
+		return result
+	}
 	afmodel := item["af-model"][0]
 	for _, model := range esAFModelsIgnored {
 		if model == afmodel {

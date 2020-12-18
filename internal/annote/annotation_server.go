@@ -144,6 +144,11 @@ func (as *AnnoStore) UploadItem(item CurateItem, uploader *User) (string, error)
 }
 
 func (as *AnnoStore) getJSON(url string, result interface{}) error {
+	// HACK: return early if there is no annotation server
+	if as.Host == "" {
+		return nil
+	}
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err

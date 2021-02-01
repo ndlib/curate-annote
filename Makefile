@@ -20,7 +20,7 @@ clean:
 annote-server:
 	$(GOCMD) build ./cmd/annote-server
 
-web/static/mirador.js: js-src/index.js
+web/static/mirador.js: js-src/index.js webpack/webpack.config.js
 	npm run webpack
 
 fix-embargo-dates:

@@ -8,6 +8,7 @@
     <li><a href="/search">Enter</a></li>
     <li><a href="/new-user">Create an Account</a></li>
     <li><a href="/static/mirador.html">Use Mirador Viewer</a></li>
+    <li><a href="/annotot">View All Annotations</a></li>
 </ul>
 
 {{ template "footer" }}

@@ -1,0 +1,35 @@
+{{ template "header" }}
+
+<h1>All Annotations</h1>
+
+<table>
+    <thead>
+        <tr>
+        <th>ID</th>
+        <th>Canvas</th>
+        <th>Creator</th>
+        <th>Create Date</th>
+        <th>Modified By</th>
+        <th>Modified Date</th>
+        <th>Data</th>
+        </tr>
+    </thead>
+        {{ range . }}
+        <tr>
+        <td>{{ .UUID }}</td>
+        <td><a href="{{ .Canvas }}">{{ .Canvas }}</a></td>
+        <td>{{ .Creator }}</td>
+        <td>{{ .CreateDate }}</td>
+        <td>{{ .ModifiedBy }}</td>
+        <td>{{ .ModifyDate }}</td>
+        <td>{{ .Data }}</td>
+        </tr>
+        {{ end }}
+    <tbody>
+    </tbody>
+</table>
+
+<a href="/static/mirador.html">Use Mirador Viewer</a>
+
+{{ template "footer" }}
+

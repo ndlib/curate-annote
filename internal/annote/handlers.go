@@ -465,8 +465,10 @@ var (
 )
 
 func StartBackgroundProcess() {
-	AnnoChan = make(chan struct{})
-	go backgroundRAPchecker(AnnoChan)
+	if AnnotationStore != nil {
+		AnnoChan = make(chan struct{})
+		go AnnotationStore.BackgroundRAPchecker(AnnoChan)
+	}
 }
 
 // A Searcher represents our interface to an external index service.

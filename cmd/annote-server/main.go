@@ -100,8 +100,10 @@ func main() {
 		h := annote.AddRoutes()
 		log.Println("Starting Background harvester")
 		go annote.BackgroundHarvester()
-		log.Println("Starting Background annotation store worker")
-		annote.StartBackgroundProcess()
+		if annote.AnnotationStore != nil {
+			log.Println("Starting Background annotation store worker")
+			annote.StartBackgroundProcess()
+		}
 		err = http.ListenAndServe(":"+config.Port, h)
 		log.Println("ListenAndServe:", err)
 	}

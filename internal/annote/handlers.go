@@ -417,6 +417,8 @@ func ObjectAnnotate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		return
 	}
 	switch {
+	case AnnotationStore == nil:
+		output.Messages = append(output.Messages, "The annotation service is down")
 	case len(ids) == 0:
 		// upload the item
 		msg, err := AnnotationStore.UploadItem(item, user)

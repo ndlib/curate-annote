@@ -488,13 +488,16 @@ func (sq *MysqlDB) RecordEvent(event string, user *User, other string) {
 func (sq *MysqlDB) TotsByCanvas(canvas string) ([]tots, error) {
 	log.Println("totbycanvas", canvas)
 	var result []tots
-	rows, err := sq.db.Query(`
-		SELECT id, uuid, canvas, data, creator, createdate, modifiedby, modifydate
-		FROM tots
-		WHERE canvas = ?
-		ORDER BY id`,
-		canvas,
-	)
+	var params []interface{}
+	query := `
+        SELECT id, uuid, canvas, data, creator, createdate, modifiedby, modifydate
+		FROM tots`
+	if canvas != "" {
+		query = query + " WHERE canvas = ?"
+		params = append(params, canvas)
+	}
+	query = query + " ORDER by id"
+	rows, err := sq.db.Query(query, params...)
 	if err != nil {
 		return result, err
 	}

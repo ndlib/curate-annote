@@ -31,6 +31,12 @@ type tots struct {
 	ModifyDate time.Time `json:"modify_date,omitempty"`
 }
 
+// AnnototPages returns a list of annotations for a given object.
+//
+// GET	/annotot/pages
+//
+// The object is passed in with the `uri=` parameter. The result list
+// contains the contents for all the annotations on that object.
 func AnnototPages(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	canvas := r.FormValue("uri")
 	if canvas == "" {
@@ -71,6 +77,10 @@ type annototcreate struct {
 	Annotation tots `json:"annotation"`
 }
 
+// AnnototCreate creates a new annotation.
+//
+// POST /annotot
+// body of request is the annotation in JSON
 func AnnototCreate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	username, _, _ := r.BasicAuth()
 
@@ -92,6 +102,10 @@ func AnnototCreate(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	Datasource.TotCreate(input.Annotation)
 }
 
+// AnnototUpdate updates a given annotation
+//
+// PATCH /annotot/:uuid
+// the body is an annotation as JSON, just as with AnnototCreate
 func AnnototUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	username, _, _ := r.BasicAuth()
 
@@ -115,4 +129,19 @@ func AnnototUpdate(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	input.Annotation.ModifyDate = t
 
 	Datasource.TotUpdateData(input.Annotation)
+}
+
+// AnnototList displays all the tots in the database
+//
+// GET /annotot
+// This returns HTML
+func AnnototListAll(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// search database
+	tots, err := Datasource.TotsByCanvas("")
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println("tots found", len(tots))
+	DoTemplate(w, "tots-listall", tots)
 }

@@ -43,7 +43,7 @@ func AddRoutes() http.Handler {
 		// Annotot endpoints
 		{"GET", "/annotot/pages", AnnototPages, false},
 		{"GET", "/annotot/lists", NotImplemented, false},
-		{"GET", "/annotot", NotImplemented, false},
+		{"GET", "/annotot", AnnototListAll, false},
 		{"POST", "/annotot", AnnototCreate, true},
 		{"PATCH", "/annotot/:uuid", AnnototUpdate, true},
 	}
@@ -54,9 +54,7 @@ func AddRoutes() http.Handler {
 		if route.defaultAuth {
 			h = authWrapper(h)
 		}
-		r.Handle(route.method,
-			route.route,
-			h)
+		r.Handle(route.method, route.route, h)
 	}
 	if StaticFilePath != "" {
 		r.ServeFiles("/static/*filepath", http.Dir(StaticFilePath))

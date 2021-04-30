@@ -47,6 +47,14 @@ func backgroundRAPchecker(c <-chan struct{}) {
 			goto sleeploop // so we can supply custom duration
 		}
 
+		if AnnotationStore == nil {
+			log.Println("@@@ no annotation server")
+			// no server, so go back to sleep.
+			// we need to loop, though since we need to
+			// keep the channel c drained.
+			continue
+		}
+
 		// do a single poll....
 		nextpoll = time.Now().Add(minInterval)
 		go checkRAPs(workerResult)

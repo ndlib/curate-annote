@@ -68,11 +68,13 @@ func main() {
 	annote.CurateURL = config.CurateURL
 	annote.FileStore.Root = config.UploadPath
 
-	annote.AnnotationStore = &annote.AnnoStore{
-		Host:             config.AnnotationStore,
-		UsernamePassword: config.AnnotationCredentials,
-		ImageViewerHost:  config.ImageViewerHost,
-		OurURL:           config.Hostname,
+	if config.AnnotationStore != "" {
+		annote.AnnotationStore = &annote.AnnoStore{
+			Host:             config.AnnotationStore,
+			UsernamePassword: config.AnnotationCredentials,
+			ImageViewerHost:  config.ImageViewerHost,
+			OurURL:           config.Hostname,
+		}
 	}
 
 	// Prefer ES over Solr as search engine since our solr implementation

@@ -106,6 +106,10 @@ retry:
 var (
 	uuidcounts = expiringCache{ttl: 5 * time.Minute,
 		f: func(key string) int {
+			if AnnotationStore == nil {
+				// there is no configured annotation store
+				return 0
+			}
 			annos, err := AnnotationStore.AnnotationListByUUID(key)
 			if err != nil {
 				log.Println(err)

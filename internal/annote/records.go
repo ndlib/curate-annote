@@ -157,9 +157,10 @@ func ReadDescMetadata(remote *RemoteFedora, id string, result *CurateItem) error
 	if err != nil {
 		return err
 	}
+	defer body.Close()
+
 	// remember the values we see for blank nodes, to add at the end
 	blanks := make(map[string][]string)
-	defer body.Close()
 	triples := rdf.NewTripleDecoder(body, rdf.NTriples)
 	for {
 		v, err := triples.Decode()

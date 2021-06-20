@@ -32,6 +32,9 @@ const config = {
       manifestId: 'https://iiif-cds.library.nd.edu/iiif/manifest/harriot_6786',
       provider: 'Hesburgh Libraries'
   },{
+      manifestId: 'https://iiif-cds.library.nd.edu/iiif/manifest/harriot_6787',
+      provider: 'Hesburgh Libraries'
+  },{
       manifestId: 'https://iiif-cds.library.nd.edu/iiif/manifest/New_retrotechAZ',
       provider: 'Hesburgh Libraries'
   },{

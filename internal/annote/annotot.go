@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -98,6 +99,12 @@ func AnnototCreate(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	input.Annotation.CreateDate = t
 	input.Annotation.ModifiedBy = username
 	input.Annotation.ModifyDate = t
+
+	// URI unencode input.Canvas
+	input.Annotation.Canvas, err = url.PathUnescape(input.Annotation.Canvas)
+	if err != nil {
+		log.Println(err)
+	}
 
 	Datasource.TotCreate(input.Annotation)
 }

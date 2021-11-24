@@ -2,6 +2,7 @@ download_cache/*
 .DS_Store
 .*.sw?
 /annote-server
+/curate-export
 /cmd/annote-server/annote-server
 **/config
 uploads/*

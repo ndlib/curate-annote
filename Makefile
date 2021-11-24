@@ -1,4 +1,4 @@
-BINARIES:=annote-server fix-embargo-dates
+BINARIES:=annote-server fix-embargo-dates curate-export
 GOCMD:=go
 VERSION:=$(shell git describe --always)
 PACKAGES:=$(shell go list ./... | grep -v /vendor/)
@@ -19,6 +19,9 @@ clean:
 # Need to include initial "./" in path so go knows it is a relative package path.
 annote-server:
 	$(GOCMD) build ./cmd/annote-server
+
+curate-export:
+	$(GOCMD) build ./cmd/curate-export
 
 web/static/mirador.js: js-src/index.js webpack/webpack.config.js
 	npm run webpack

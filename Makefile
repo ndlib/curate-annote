@@ -1,4 +1,4 @@
-BINARIES:=annote-server fix-embargo-dates curate-export
+BINARIES:=annote-server fix-embargo-dates curate-export fedora-to-tape
 GOCMD:=go
 VERSION:=$(shell git describe --always)
 PACKAGES:=$(shell go list ./... | grep -v /vendor/)

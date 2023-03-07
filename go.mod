@@ -10,5 +10,5 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/knakk/rdf v0.0.0-20190304171630-8521bf4c5042
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	golang.org/x/crypto v0.0.0-20210317152858-513c2a44f670
+	golang.org/x/crypto v0.1.0
 )
